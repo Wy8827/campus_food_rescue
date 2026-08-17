@@ -1,4 +1,5 @@
 .navbar {
+    z-index: 999;
     min-height: 72px;
 
     position: fixed;
@@ -133,7 +134,6 @@
 
 .mobile-menu {
     display: none;
-    margin-top: 72px;
 
     flex-direction: column;
 
@@ -161,7 +161,7 @@ footer {
   background: #27272a; color: #a1a1aa;
   padding: 20px 40px; display: flex; align-items: center;
   justify-content: space-between; font-size: 12px; margin-top: 40px;
-  margin-top: auto;
+  
 }
 .footer-logo { color: white; font-weight: 600; font-size: 13px; }
 .footer-links { display: flex; gap: 20px; }
@@ -216,5 +216,4 @@ footer {
 
         cursor: pointer;
     }
-
 }
