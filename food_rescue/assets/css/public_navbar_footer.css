@@ -156,6 +156,18 @@
     text-decoration: none;
 }
 
+/* ── FOOTER ── */
+footer {
+  background: #27272a; color: #a1a1aa;
+  padding: 20px 40px; display: flex; align-items: center;
+  justify-content: space-between; font-size: 12px; margin-top: 40px;
+  margin-top: auto;
+}
+.footer-logo { color: white; font-weight: 600; font-size: 13px; }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { color: var(--gray-400); text-decoration: none; }
+.footer-links a:hover { color: white; }
+
 @media screen and (max-width: 850px) {
 
     .navbar {

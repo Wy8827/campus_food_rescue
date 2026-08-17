@@ -54,6 +54,8 @@
     </div>
   </div>
 
+  <?php include '../../includes/public_footer.php'; ?>
+
   <script src="../../assets/js/navbar.js"></script>
 </body>
 </html>
