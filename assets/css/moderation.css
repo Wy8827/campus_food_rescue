@@ -1,0 +1,266 @@
+.toolbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+    margin-bottom: 24px;
+    width: 100%;
+    gap: 16px;
+}
+
+.selection-container {
+    display: flex;
+    gap: 12px;
+    flex-direction: row;
+}
+
+.filter-select {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 20px;
+    border: 1px solid #D0D5DD;
+    background-color: #FFFFFF;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+}
+
+.view-toggle-buttons {
+    display: flex;
+    background: #F2F4F7;
+    border-radius: 8px;
+    padding: 3px;
+    margin: 15px 0 15px 0;
+}
+
+.toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: #667085;
+}
+
+.toggle-btn.active {
+    background: #FFFFFF;
+    color: #1D2939;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.toggle-btn ion-icon {
+    font-size: 18px;
+}
+
+.moderation-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.moderation-list-item {
+    background: #FFFFFF;
+    border: 1px solid #E4E7EC;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+}
+
+.listing-card {
+    display: flex;
+    flex-direction: row;
+}
+
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.item-code {
+    font-size: 11px;
+    font-weight: 600;
+    color: #667085;
+}
+
+.urgent-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-urgent {
+    background-color: #B42318;
+    color: #FFFFFF;
+}
+
+.badge-normal {
+    background-color: #F2F4F7;
+    color: #475467;
+}
+
+.listing-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #101828;
+    margin: 0 0 6px 0;
+}
+
+.location-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #475467;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.location-row ion-icon {
+    font-size: 15px;
+    color: #667085;
+}
+
+.meta-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #475467;
+    margin-bottom: 16px;
+}
+
+.diet-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+.diet-tag.vegan {
+    background-color: #DCFCE7;
+    color: #15803D;
+}
+
+.card-divider {
+    height: 1px;
+    background-color: #EAECF0;
+    margin-bottom: 16px;
+}
+
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.approve-button {
+    background-color: #385E29;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.approve-button:hover {
+    background-color: #2b4920;
+}
+
+.reject-button {
+    background-color: #FFFFFF;
+    color: #B42318;
+    border: 1px solid #FDA29B;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.reject-button:hover {
+    background-color: #FEF3F2;
+}
+
+.flag-icon-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #667085;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+}
+
+.flag-icon-btn ion-icon {
+    font-size: 20px;
+}
+
+.food-image-container {
+    width: 130px;
+    height: 130px;
+    flex-shrink: 0;
+    border-radius: 8px;
+}
+
+.food-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    border-radius: 8px;
+}
+
+.food-info-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;   /* Ensures that the text can shrink properly */
+    padding: 10px;
+}
+
+@media (max-width: 768px) {
+    .content-container {
+        padding: 30px !important;
+    }
+
+    .toolbar-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .selection-container {
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .filter-select {
+        flex: 1 1 calc(50% - 8px);
+    }
+
+    .view-toggle-buttons {
+        display: none;
+    }
+
+    .moderation-list {
+        grid-template-columns: 1fr;
+    }
+}
