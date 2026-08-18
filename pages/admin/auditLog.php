@@ -1,4 +1,5 @@
-<?php session_start(); ?>
+<?php session_start(); 
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -52,9 +53,10 @@
                         </div>
                     </div>
 
+                    
+                    <span class="section-title">Vendor Contribution Analysis</span> </br>
+                    <span class="section-subtitle">Detailed metrics per participating location</span>
                     <div class="user-list-container">
-                        <span class="section-title">Vendor Contribution Analysis</span> </br>
-                        <span class="section-subtitle">Detailed metrics per participating location</span>
                         <table class="user-list-table">
                             <thead>
                                 <tr>

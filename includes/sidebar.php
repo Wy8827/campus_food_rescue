@@ -47,11 +47,6 @@
         <span><img src="../../assets/images/logo.png" alt="Campus Food Rescue Logo" width="50" style="margin-left: 6px;"></span>
         <span class="brand-text">Campus Food Rescue <br> <span class="brand-subtext"><?= htmlspecialchars($portal_title) ?></span></span>
     </div>
-        
-    <div class="sidebar-profile">
-        <span><ion-icon name="person-circle-outline" class="profile-icon"></ion-icon></span>
-        <span class="profile-text"><?= htmlspecialchars($_SESSION['user_name'] ?? 'User') ?></span>
-    </div>
 
     <div class="sidebar-navigation-container">
         <ul class="sidebar-navigation">

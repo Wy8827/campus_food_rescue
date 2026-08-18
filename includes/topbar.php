@@ -1,23 +1,16 @@
 <header class="topbar">
-    
-    <div class="search-bar-container">
-        <input type="text" placeholder="Search Console..." class="search-bar">
+    <div class="topbar-left">
+        <span><img src="../../assets/images/logo.png" alt="Campus Food Rescue Logo" width="40" style="margin-left: 6px;"></span>
+        <span class="topbar-title">Campus Food Rescue</span>
     </div>
 
-    
-    <button class="export-rpt">Export Report</button>
-    
-    <span style="color: #C2C9B7;">|</span>
+    <div class="topbar-right">
+        <a class="profile-pic" href="adminprofile.php">
+            <span><ion-icon name="person-circle-outline"></ion-icon></span>
+            <span class="profile-text"><?php echo $_SESSION['user_name']; ?></span>
+        </a>
 
-    <ion-icon name="notifications-outline"></ion-icon>
-
-
-    <a class="profile-pic" href="adminprofile.php">
-        <span><ion-icon name="person-circle-outline"></ion-icon></span>
-        <span class="profile-text"><?php echo $_SESSION['user_name']; ?></span>
-    </a>
-
-    <button class="logout-btn" onclick="window.location.href='../../pages/auth/logout.php'">Logout</button>
-    
+        <button class="logout-btn" onclick="window.location.href='../../pages/auth/logout.php'">Logout</button>
+    </div>
 
 </header>
