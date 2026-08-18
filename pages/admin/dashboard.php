@@ -1,7 +1,12 @@
 <?php 
     session_start();
 
+    require_once __DIR__ . '/../../config/constants.php';
+    require_once __DIR__ . '/../../config/session.php';
     require_once __DIR__ . '/../../config/db.php';
+
+    // 检查是否登录并且角色是 admin，如果不符合会自动跳转到登录页
+    requireRole('admin'); 
 
     $pdo = getDB();
 

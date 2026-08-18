@@ -17,7 +17,7 @@
         <span class="profile-text"><?php echo $_SESSION['user_name']; ?></span>
     </a>
 
-    <button class="logout-btn" onclick="window.location.href='../../logout.php'">Logout</button>
+    <button class="logout-btn" onclick="window.location.href='../../pages/auth/logout.php'">Logout</button>
     
 
 </header>

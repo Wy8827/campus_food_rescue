@@ -1,3 +1,56 @@
+<?php
+require_once __DIR__ . '/../../config/constants.php';
+require_once __DIR__ . '/../../config/session.php';
+require_once __DIR__ . '/../../config/db.php';
+
+if (isLoggedIn()) {
+  $role = getRole();
+  header("Location: " . BASE_URL . "/pages/$role/dashboard.php");
+  exit();
+}
+
+$error_msg = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $email = trim($_POST['txtEmail'] ?? '');
+  $password = $_POST['txtPassword'] ?? '';
+
+  if(empty($email) || empty($password)) {
+    $error_msg = 'Please fill in all fields.';
+  } else {
+    $pdo = getDB();
+
+    $stmt = $pdo -> prepare("SELECT * FROM `user` WHERE `email` = :email LIMIT 1");
+    $stmt -> execute([':email' => $email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user && password_verify($password, $user['pass_hash'])) {
+      if($user['account_status'] === 'banned') {
+        $error_msg = 'Your account has been banned. Please contact support.';
+      } else {
+        $_SESSION['user_id'] = $user['user_id'];
+        $_SESSION['user_name'] = $user['user_name'];
+        $_SESSION['role'] = $user['role'];
+        $_SESSION['email'] = $user['email'];
+      
+
+        if($user['role'] === 'admin') {
+          header("Location: " . BASE_URL . "/pages/admin/dashboard.php");
+        } elseif ($user['role'] === 'provider') {
+          header("Location: " . BASE_URL . "/pages/provider/dashboard.php");
+        } else {
+          header("Location: " . BASE_URL . "/pages/student/dashboard.php");
+        }
+        exit();
+      } 
+    } else {
+    $error_msg = 'Invalid email or password.';
+    }
+  }
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,13 +75,19 @@
       <h1 class="auth-title">Welcome Back</h1>
       <p class="auth-sub">Sign in to manage institutional logistics and sustainability tracking.</p>
 
+      <?php if (!empty($error_msg)): ?>
+        <div style="color: #d9534f; background-color: #fdf7f7; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center; border: 1px solid #ebccd1;">
+          <?= htmlspecialchars($error_msg) ?>
+        </div>
+      <?php endif; ?>
+
       <form action="" method="POST">
         <!-- Email -->
         <div class="form-group">
-          <label for="email">Email Address</label>
+          <label for="txtEmail">Email Address</label>
           <div class="input-wrap">
             <img src="../../assets/images/email-icon.png" alt="">
-              <input type="email" id="txtEmail" name="txtEmail" placeholder="admin@institution.edu">
+              <input type="email" id="txtEmail" name="txtEmail" placeholder="admin@institution.edu" required>
           </div>
         </div>
 
@@ -40,7 +99,7 @@
           </div> 
           <div class="input-wrap">
             <img src="../../assets/images/password-icon.png" alt="">
-              <input type="password" id="txtPassword" name="txtPassword" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;">
+              <input type="password" id="txtPassword" name="txtPassword" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required>
           </div>
         </div>
 

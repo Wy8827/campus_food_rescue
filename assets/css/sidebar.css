@@ -70,6 +70,26 @@ ion-icon {
     padding: 10px 12px;
 }
 
+.sidebar-navigation .nav-icon img,
+.sidebar-navigation .nav-icon,
+.sidebar-navigation a img,
+.sidebar-footer a img {
+    width: 18px !important;
+    height: 18px !important;
+    object-fit: contain;
+}
+
+.nav-text {
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    margin-left: 14px;
+    line-height: 1.2;
+}
+
+.nav-container, .footer-nav-container {
+    margin: 4px 10px;
+}
+
 .sidebar-navigation li{
     display: flex;
     align-items: center;
