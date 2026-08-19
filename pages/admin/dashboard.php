@@ -1,17 +1,86 @@
 <?php 
-    session_start();
+session_start();
 
-    require_once __DIR__ . '/../../config/constants.php';
-    require_once __DIR__ . '/../../config/session.php';
-    require_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/../../config/constants.php';
+require_once __DIR__ . '/../../config/session.php';
+require_once __DIR__ . '/../../config/db.php';
 
-    requireRole('admin'); 
+requireRole('admin'); 
 
-    $pdo = getDB();
+$pdo = getDB();
 
-    $stmt = $pdo->prepare("SELECT user_id, user_name, email, role, account_status FROM `user`");
-    $stmt->execute();
-    $users = $stmt->fetchAll();
+// 1. PENDING LISTINGS 
+$stmtPending = $pdo->query("SELECT COUNT(*) FROM `food_listing` WHERE `status` = 'pending'");
+$pendingListings = $stmtPending->fetchColumn();
+
+// 2. ACTIVE USERS 
+$stmtUsers = $pdo->query("SELECT COUNT(*) FROM `user` WHERE `account_status` = 'active'");
+$activeUsers = $stmtUsers->fetchColumn();
+
+// 3. TOTAL WEIGHT RESCUED 
+// calculate formula: (completed claims / total quantity) * food weight
+$stmtWeight = $pdo->query("
+    SELECT SUM((c.portion_claimed / f.total_quantity) * f.weight_kg) 
+    FROM `claim` c 
+    JOIN `food_listing` f ON c.listing_id = f.listing_id 
+    WHERE c.status = 'completed'
+");
+$totalWeightRescued = round($stmtWeight->fetchColumn() ?? 0, 2);
+
+// 4. AVERAGE PICKUP TIME (平均取餐时间)
+// calculate formula: average of minutes difference between confirmed_at and created_at for completed orders
+$stmtTime = $pdo->query("
+    SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, confirmed_at)) 
+    FROM `claim` 
+    WHERE status = 'completed' AND confirmed_at IS NOT NULL
+");
+$avgPickupTime = round($stmtTime->fetchColumn() ?? 0);
+
+// ---------------------------------------------------------
+// CHART data handling
+// ---------------------------------------------------------
+
+// Chart 1: Peak Claim Hours 
+$stmtPeak = $pdo->query("
+    SELECT HOUR(created_at) as claim_hour, COUNT(*) as claim_count 
+    FROM `claim` 
+    GROUP BY HOUR(created_at) 
+    ORDER BY claim_hour
+");
+$peakData = $stmtPeak->fetchAll(PDO::FETCH_ASSOC);
+$peakLabels = [];
+$peakCounts = [];
+foreach ($peakData as $row) {
+    // format time as 8am, 2pm, etc.
+    $peakLabels[] = date("ga", strtotime($row['claim_hour'].":00"));
+    $peakCounts[] = $row['claim_count'];
+}
+
+// Chart 2: Rescued By Location 
+$stmtLocation = $pdo->query("
+    SELECT f.pickup_location, COUNT(c.claim_id) as claim_count 
+    FROM `claim` c 
+    JOIN `food_listing` f ON c.listing_id = f.listing_id 
+    WHERE c.status = 'completed' 
+    GROUP BY f.pickup_location
+");
+$locationData = $stmtLocation->fetchAll(PDO::FETCH_ASSOC);
+$locationLabels = array_column($locationData, 'pickup_location');
+$locationCounts = array_column($locationData, 'claim_count');
+
+// Chart 3: Rescued By Category 
+$stmtCategory = $pdo->query("
+    SELECT t.tag_name, COUNT(c.claim_id) as claim_count 
+    FROM `claim` c 
+    JOIN `food_listing` f ON c.listing_id = f.listing_id 
+    JOIN `food_listing_tags` flt ON f.listing_id = flt.listing_id 
+    JOIN `food_tags` t ON flt.tag_id = t.tag_id 
+    WHERE c.status = 'completed' 
+    GROUP BY t.tag_name
+");
+$categoryData = $stmtCategory->fetchAll(PDO::FETCH_ASSOC);
+$categoryLabels = array_column($categoryData, 'tag_name');
+$categoryCounts = array_column($categoryData, 'claim_count');
 ?>
 
 <!DOCTYPE html>
@@ -45,22 +114,22 @@
                 <div class="summary-card-container">
                     <div class="summary-card">
                         <span class="card-title">PENDING LISTINGS</span>
-                        <span class="card-value">14</span>
+                        <span class="card-value"><?= htmlspecialchars($pendingListings) ?></span>
                     </div>
 
                     <div class="summary-card">
                         <span class="card-title">ACTIVE USERS</span>
-                        <span class="card-value">28</span>
+                        <span class="card-value"><?= htmlspecialchars($activeUsers) ?></span>
                     </div>
 
                     <div class="summary-card">
                         <span class="card-title">TOTAL WEIGHT RESCUED</span>
-                        <span class="card-value">120<span class="unit">tons</span></span>
+                        <span class="card-value"><?= htmlspecialchars($totalWeightRescued) ?><span class="unit">tons</span></span>
                     </div>
 
                     <div class="summary-card">
                         <span class="card-title">AVERAGE PICKUP TIME</span>
-                        <span class="card-value">20<span class="unit">mins</span></span>
+                        <span class="card-value"><?= htmlspecialchars($avgPickupTime) ?><span class="unit">mins</span></span>
                     </div>
                 </div>
 
@@ -118,10 +187,10 @@
                     const context = document.getElementById('peakClaimHourChart').getContext('2d');
 
                     const chartData = {
-                        labels: ['8am', '10am', '12pm', '2pm', '4pm'],
+                        labels: <?= json_encode($peakLabels) ?>,
                         datasets: [{ 
                             label: 'Peak Claim Hours',
-                            data: [10, 20, 30, 40, 50], 
+                            data: <?= json_encode($peakCounts) ?>, 
                             backgroundColor: [
                                 'rgba(255, 99, 132, 0.2)'
                             ],
@@ -164,9 +233,9 @@
                     new Chart(ctxLoc, {
                         type: 'pie',
                         data: {
-                            labels: ["Student Coop", "Library", "APU Canteen", "Mamak", "Event"],
+                            labels: <?= json_encode($locationLabels) ?>, // Dynamic Locations
                             datasets: [{
-                                data: [76, 96, 118, 140, 182],
+                                data: <?= json_encode($locationCounts) ?>, // Dynamic Counts
                                 backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
                             }]
                         },
@@ -178,9 +247,9 @@
                     new Chart(ctxCat, {
                         type: 'pie',
                         data: {
-                            labels: ["Beverages", "Fresh Fruit", "Bread", "Boxed Meals"],
+                            labels: <?= json_encode($categoryLabels) ?>, // Dynamic Tags
                             datasets: [{
-                                data: [10, 15, 30, 45],
+                                data: <?= json_encode($categoryCounts) ?>, // Dynamic Counts
                                 backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
                             }]
                         },

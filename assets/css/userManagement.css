@@ -74,37 +74,6 @@
     padding-left: 10px;
 }
 
-.user-list-container {
-    width: 100%;
-    overflow-x: auto;
-    padding: 16px;
-    margin-top: 20px;
-    border: solid 1px #C2C9B7;
-    border-radius: 10px;
-}
-
-.user-list-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 15px;
-}
-
-.user-list-table th, .user-list-table td {
-    text-align: left;
-    padding: 10px 8px;
-    border-bottom: 1px solid #C2C9B7;
-}
-
-.edit-button {
-    background-color: #275300;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    width: 60px;
-}
-
 .suspend-button {
     background-color: white;
     color: red;
@@ -113,6 +82,271 @@
     border-radius: 4px;
     cursor: pointer;
 }
+
+/* Container & Table Structure */
+.user-list-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+    border: 1px solid #D1D5DB;
+    border-radius: 10px;
+    background-color: #FFFFFF;
+}
+
+.user-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.user-list-table thead {
+    background-color: #F3F4F0;
+}
+
+.user-list-table th {
+    color: #6B7280;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid #D1D5DB;
+}
+
+.user-list-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #E5E7EB;
+    vertical-align: middle;
+}
+
+/* Row Backgrounds */
+.row-suspended { background-color: #FFF5F5; }
+.user-list-table tbody tr:last-child td { border-bottom: none; }
+
+/* User Profile Column */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    background-color: #E5E7EB; /* Default gray */
+}
+
+.avatar-student { 
+    background-color: #A7C7E7; /* Light Blue */ 
+}
+
+.avatar-provider { 
+    background-color: #A3E4D7; /* Light Green */ 
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.user-meta {
+    font-size: 12px;
+    color: #6B7280;
+}
+
+/* Role Badges */
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.role-student { 
+    background-color: #E0E7FF; 
+    color: #3730A3; 
+}
+
+.role-provider { 
+    background-color: #FFEDD5; 
+    color: #9A3412; 
+}
+.role-admin { 
+    background-color: #F3F4F6; 
+    color: #1F2937; 
+}
+
+.action-approve_listing, .action-approve_provider {
+    background-color: green;
+    color: white;
+}
+
+.action-reject_listing, .action-reject_provider, .action-throttle_user,  .action-warn_user{
+    background-color: rgb(203, 163, 63);
+    color: white;
+}
+
+.action-remove_listing,  .action-ban_user{
+    background-color: red;
+    color: white;
+}
+
+/* No-Show */
+.no-show-high {
+    color: #DC2626;
+    font-weight: 600;
+}
+
+/* Credit Score Progress Bar */
+.credit-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.score-bar-bg {
+    width: 48px;
+    height: 6px;
+    background-color: #E5E7EB;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.fill-green { background-color: #166534; }
+.fill-orange { background-color: #EA580C; }
+.fill-red { background-color: #DC2626; }
+
+.score-text {
+    font-size: 13px;
+    font-weight: 600;
+    width: 32px;
+}
+.score-green { color: #166534; }
+.score-orange { color: #EA580C; }
+.score-red { color: #DC2626; }
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.status-active { color: #166534; }
+.status-active .dot { background-color: #166534; }
+
+.status-flagged { color: #EA580C; }
+.status-flagged .dot { background-color: #EA580C; }
+
+.status-suspended { color: #DC2626; }
+.status-suspended .dot { background-color: #DC2626; }
+
+/* Pagination Footer */
+.user-list-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background-color: #F3F4F0;
+    border-top: 1px solid #D1D5DB;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    font-size: 12px;
+    color: #4B5563;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #4B5563;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.pagination-btn:hover:not(.disabled) {
+    background-color: #E5E7EB;
+    color: #111827;
+}
+
+/* Disabled button state (on first or last page) */
+.pagination-btn.disabled {
+    color: #9CA3AF;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.view-button, .edit-button {
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 98px;
+    font-weight: 600;
+}
+
+.edit-button {
+    background-color: #275300;
+    color: white;
+}
+
+.edit-button:hover {
+    background-color:#88b064bc;
+}
+
+.view-button {
+    background-color: #0000003a;
+    color: #1F2937;
+}
+
+.view-button:hover {
+    background-color: #898e95dd;
+}
+
 
 @media (max-width: 768px) {
     .user-page-header {

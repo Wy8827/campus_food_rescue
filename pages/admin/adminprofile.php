@@ -1,4 +1,25 @@
-<?php session_start(); ?>
+<?php session_start(); 
+
+require_once __DIR__ . '/../../config/session.php';
+require_once __DIR__ . '/../../config/db.php';
+
+$pdo = getDB();
+
+$currentUserId = $_SESSION['user_id'] ?? null;
+$admin_data = [];
+
+try {
+    $stmt = $pdo->prepare("SELECT user_name, email, role, security_question FROM user WHERE user_id = ? AND role = 'admin'");
+    $stmt->execute([$currentUserId]);
+    $admin_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if(!$admin_data) {
+        die("Admin data not found.");
+    }
+} catch(PDOException $e){
+    die("Database error: " . $e->getMessage());
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -11,6 +32,7 @@
     <link rel="stylesheet" href="../../assets/css/moderation.css">
     <link rel="stylesheet" href="../../assets/css/adminProfile.css">
     <link rel="stylesheet" href="../../assets/css/userManagement.css">
+    <script src="../../assets/js/adminProfile.js" defer></script>
     <script type="module" src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.js"></script>
     <title>Account Settings</title>
@@ -46,17 +68,17 @@
                             <div class="profile-info-container">
                                 <div class="profile-info-item">
                                     <span class="info-label">Username:</span> <br>
-                                    <input type="text" class="info-value" value="Admin APU" readonly>
+                                    <input type="text" class="info-value" value="<?php echo htmlspecialchars($admin_data['user_name']); ?>" readonly>
                                 </div>
 
                                 <div class="profile-info-item">
                                     <span class="info-label">Role:</span> <br>
-                                    <input type="text" class="info-value" value="Administrator" readonly>
+                                    <div class="role-value"><span type="text" class="" value="<?php echo htmlspecialchars($admin_data['role']); ?>" readonly>Administrator</span></div>
                                 </div>
                                 
                                 <div class="profile-info-item">
                                     <span class="info-label">Email:</span> <br>
-                                    <input type="text" class="info-value" value="admin@apu.edu" readonly>
+                                    <input type="text" class="info-value" value="<?php echo htmlspecialchars($admin_data['email']); ?>" readonly>
                                 </div>
                                 
                             </div>
@@ -68,7 +90,7 @@
                                 <div class="security-setting-item">
                                     <div class="setting-label-container">
                                         <label class="setting-label">Security Question: </label>
-                                        <label class="setting-value">What is your favorite campus building?</label>
+                                        <label class="setting-value"><?php echo htmlspecialchars($admin_data['security_question']); ?></label>
                                     </div>
                                     <input type="text" name="security_answer" class="info-value" placeholder="Enter your answer" readonly>
                                 </div>
