@@ -2,15 +2,14 @@
 -- food_rescue database — REBUILT SCHEMA (v2)
 -- Generated for direct import into MySQL / MariaDB (phpMyAdmin compatible)
 -- Base: original food_rescue.sql (Aug 17, 2026 dump)
--- =====================================================================
--- WHAT CHANGED FROM v1 (summary — see comments inline for detail):
+-- =====================================================================:
 --   1. ON DELETE CASCADE removed from historical tables -> RESTRICT
 --      (protect audit logs / analytics from being wiped when a parent
 --       row such as a user or listing is removed)
 --   2. CHECK constraints added for quantities, ratings, portions
 --   3. Composite indexes added to match real dashboard queries
 --   4. claim_tokens now stores a SHA-256 HASH, not the raw token
---   5. New tables: provider_review, provider_audit_log
+--   5. New tables: provider_audit_log
 --   6. impact_record: added quantity_rescued + calculation_version
 --   7. food_listing: added 'fully_claimed' status + auto-sync trigger
 --   8. claim: status-transition trigger blocks illogical updates
@@ -18,14 +17,13 @@
 --   9. Role-integrity triggers (e.g. claim.student_id must belong to
 --      a user with role='student')
 --  10. email column widened to varchar(255)
---  11. New views: provider_statistics, provider_score
 --
 -- NOTE: table names (`user`, `claim`, etc.) were KEPT AS-IS so this
 -- drops straight into your existing PHP code without renaming work.
 -- Renaming `user` -> `users` is a low-priority, optional change — see
 -- the note at the very end of this file if you want to do it later.
 -- =====================================================================
-
+--PASSWORD: 123
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -464,15 +462,6 @@ ALTER TABLE `user_audit_log`
   ADD KEY `idx_user_log_action_performed` (`action_type`,`performed_at`);
 
 --
--- Indexes for table `provider_review`
---
-ALTER TABLE `provider_review`
-  ADD PRIMARY KEY (`review_id`),
-  ADD UNIQUE KEY `uq_review_claim` (`claim_id`),
-  ADD KEY `idx_review_provider_created` (`provider_id`,`created_at`),
-  ADD KEY `fk_review_student` (`student_id`);
-
---
 -- Indexes for table `provider_audit_log`
 --
 ALTER TABLE `provider_audit_log`
@@ -495,7 +484,6 @@ ALTER TABLE `impact_record` MODIFY `impact_id` int(11) NOT NULL AUTO_INCREMENT, 
 ALTER TABLE `listing_audit_log` MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 ALTER TABLE `penalty_log` MODIFY `penalty_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 ALTER TABLE `user_audit_log` MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-ALTER TABLE `provider_review` MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 ALTER TABLE `provider_audit_log` MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 -- =====================================================================
@@ -570,15 +558,6 @@ ALTER TABLE `user_audit_log`
   ADD CONSTRAINT `fk_user_log_admin` FOREIGN KEY (`admin_id`) REFERENCES `user` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_user_log_affected` FOREIGN KEY (`affected_user_id`) REFERENCES `user` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
---
--- Constraints for table `provider_review`
---
-ALTER TABLE `provider_review`
-  ADD CONSTRAINT `fk_review_claim` FOREIGN KEY (`claim_id`) REFERENCES `claim` (`claim_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_review_provider` FOREIGN KEY (`provider_id`) REFERENCES `provider` (`provider_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_review_student` FOREIGN KEY (`student_id`) REFERENCES `user` (`user_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
---
 -- Constraints for table `provider_audit_log`
 --
 ALTER TABLE `provider_audit_log`
@@ -666,31 +645,6 @@ BEGIN
 END$$
 
 -- ---------------------------------------------------------------
--- 5. provider_review: reviewer + provider must match the claim's
---    actual student and provider chain (claim -> listing -> provider)
---    so a review can never be attached to the wrong provider/student.
--- ---------------------------------------------------------------
-CREATE TRIGGER `trg_review_matches_claim` BEFORE INSERT ON `provider_review`
-FOR EACH ROW
-BEGIN
-  DECLARE v_student_id INT;
-  DECLARE v_provider_id INT;
-  SELECT c.student_id, fl.provider_id
-    INTO v_student_id, v_provider_id
-    FROM `claim` c
-    JOIN `food_listing` fl ON fl.listing_id = c.listing_id
-    WHERE c.claim_id = NEW.claim_id;
-
-  IF v_student_id IS NULL THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'provider_review.claim_id does not exist';
-  ELSEIF v_student_id <> NEW.student_id OR v_provider_id <> NEW.provider_id THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'provider_review student_id/provider_id must match the claim it references';
-  END IF;
-END$$
-
-DELIMITER ;
-
--- ---------------------------------------------------------------
 -- 6. Role integrity: provider.user_id must belong to a user with
 --    role = 'provider'
 -- ---------------------------------------------------------------
@@ -705,78 +659,3 @@ BEGIN
   END IF;
 END$$
 DELIMITER ;
-
--- =====================================================================
--- VIEWS
--- Instead of storing a single "credit_score" number on the provider
--- table (which can't be explained or audited), the score is CALCULATED
--- on the fly from real activity: fulfillment, unclaimed/waste ratio,
--- review scores, and compliance history. Query these views directly
--- from your admin dashboard.
--- =====================================================================
-
--- ---------------------------------------------------------------
--- provider_statistics: raw counts your dashboard needs, precomputed
--- so PHP doesn't have to repeat multi-join aggregate queries.
--- ---------------------------------------------------------------
-CREATE VIEW `provider_statistics` AS
-SELECT
-  p.provider_id,
-  p.provider_name,
-  p.provider_status,
-  COUNT(DISTINCT fl.listing_id)                                              AS total_listings,
-  COALESCE(SUM(fl.total_quantity), 0)                                        AS total_quantity,
-  COALESCE(SUM(fl.total_quantity - fl.remain_quantity), 0)                   AS claimed_quantity,
-  COALESCE(SUM(CASE WHEN fl.status = 'expired' THEN fl.remain_quantity ELSE 0 END), 0) AS expired_unclaimed_quantity,
-  COUNT(DISTINCT CASE WHEN c.status = 'completed' THEN c.claim_id END)       AS completed_claims,
-  COUNT(DISTINCT CASE WHEN c.status = 'cancelled' THEN c.claim_id END)       AS cancelled_claims,
-  COUNT(DISTINCT CASE WHEN c.status IN ('completed','cancelled','expired') THEN c.claim_id END) AS resolved_claims,
-  ROUND(
-    COUNT(DISTINCT CASE WHEN c.status = 'completed' THEN c.claim_id END)
-    / NULLIF(COUNT(DISTINCT CASE WHEN c.status IN ('completed','cancelled','expired') THEN c.claim_id END), 0)
-  , 4) AS fulfillment_rate,
-  ROUND(
-    COALESCE(SUM(CASE WHEN fl.status = 'expired' THEN fl.remain_quantity ELSE 0 END), 0)
-    / NULLIF(SUM(fl.total_quantity), 0)
-  , 4) AS unclaimed_waste_rate
-FROM `provider` p
-LEFT JOIN `food_listing` fl ON fl.provider_id = p.provider_id
-LEFT JOIN `claim` c ON c.listing_id = fl.listing_id
-GROUP BY p.provider_id, p.provider_name, p.provider_status;
-
--- ---------------------------------------------------------------
--- provider_score: weighted composite score (0-100), explainable
--- component by component instead of a single opaque number.
---   Fulfillment rate        40%
---   Food/description review 25%  (avg of provider_review ratings, /5)
---   Unclaimed/waste rate    20%  (lower waste = higher score)
---   Compliance              15%  (deducted for suspended/warned events)
--- ---------------------------------------------------------------
-CREATE VIEW `provider_score` AS
-SELECT
-  ps.provider_id,
-  ps.provider_name,
-  ps.provider_status,
-  ps.fulfillment_rate,
-  ps.unclaimed_waste_rate,
-  r.avg_rating,
-  r.review_count,
-  comp.compliance_incidents,
-  ROUND(
-    (COALESCE(ps.fulfillment_rate, 0) * 40)
-    + (COALESCE(r.avg_rating, 5) / 5 * 25)
-    + ((1 - COALESCE(ps.unclaimed_waste_rate, 0)) * 20)
-    + (GREATEST(0, 15 - COALESCE(comp.compliance_incidents, 0) * 5))
-  , 1) AS overall_score
-FROM `provider_statistics` ps
-LEFT JOIN (
-  SELECT provider_id, ROUND(AVG(rating), 2) AS avg_rating, COUNT(*) AS review_count
-  FROM `provider_review`
-  GROUP BY provider_id
-) r ON r.provider_id = ps.provider_id
-LEFT JOIN (
-  SELECT provider_id, COUNT(*) AS compliance_incidents
-  FROM `provider_audit_log`
-  WHERE action_type IN ('suspended','warned')
-  GROUP BY provider_id
-) comp ON comp.provider_id = ps.provider_id;
