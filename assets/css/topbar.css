@@ -36,6 +36,27 @@ html, body {
     margin-left: auto;
 }
 
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    background-color: #E5E7EB; /* Default gray */
+}
+
+.avatar-student { 
+    background-color: #A7C7E7; /* Light Blue */ 
+}
+
+.avatar-provider { 
+    background-color: #A3E4D7; /* Light Green */ 
+}
+
 .main-content {
     flex: 1;
     display: flex;

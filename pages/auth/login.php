@@ -18,12 +18,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if(empty($email) || empty($password)) {
     $error_msg = 'Please fill in all fields.';
   } else {
-    $pdo = getDB();
+    // Replace PDO with mysqli_prepare and use the ? placeholder[cite: 3]
+    $query = "SELECT * FROM `user` WHERE `email` = ? LIMIT 1";
+    $stmt = mysqli_prepare($conn, $query);
+    
+    // Bind the email parameter as a string ("s")[cite: 3]
+    mysqli_stmt_bind_param($stmt, "s", $email);
+    mysqli_stmt_execute($stmt);
+    
+    // Fetch the associative array result[cite: 3]
+    $result = mysqli_stmt_get_result($stmt);
+    $user = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
 
-    $stmt = $pdo -> prepare("SELECT * FROM `user` WHERE `email` = :email LIMIT 1");
-    $stmt -> execute([':email' => $email]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
+    // The password verification and routing logic remains unchanged[cite: 3]
     if ($user && password_verify($password, $user['pass_hash'])) {
       if($user['account_status'] === 'banned') {
         $error_msg = 'Your account has been banned. Please contact support.';
@@ -33,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['role'] = $user['role'];
         $_SESSION['email'] = $user['email'];
       
-
         if($user['role'] === 'admin') {
           header("Location: " . BASE_URL . "/pages/admin/dashboard.php");
         } elseif ($user['role'] === '') {
@@ -44,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
       } 
     } else {
-    $error_msg = 'Invalid email or password.';
+      $error_msg = 'Invalid email or password.';
     }
   }
 }

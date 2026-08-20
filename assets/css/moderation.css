@@ -2,7 +2,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 24px;
     margin-bottom: 24px;
     width: 100%;
     gap: 16px;
@@ -235,6 +234,13 @@
     flex: 1;
     min-width: 0;   /* Ensures that the text can shrink properly */
     padding: 10px;
+}
+
+.diet-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+    gap: 6px;
 }
 
 @media (max-width: 768px) {

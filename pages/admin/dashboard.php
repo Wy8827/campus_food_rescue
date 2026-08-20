@@ -1,86 +1,75 @@
-<?php 
-session_start();
+<?php  
+session_start(); 
+require_once __DIR__ . '/../../config/constants.php'; 
+require_once __DIR__ . '/../../config/session.php'; 
+require_once __DIR__ . '/../../config/db.php'; 
 
-require_once __DIR__ . '/../../config/constants.php';
-require_once __DIR__ . '/../../config/session.php';
-require_once __DIR__ . '/../../config/db.php';
+requireRole('admin');  
 
-requireRole('admin'); 
+// 1. PENDING LISTINGS  
+$stmtPending = mysqli_query($conn, "SELECT COUNT(*) FROM `food_listing` WHERE `status` = 'pending'"); 
+$pendingListings = mysqli_fetch_row($stmtPending)[0]; 
 
-$pdo = getDB();
+// 2. ACTIVE USERS  
+$stmtUsers = mysqli_query($conn, "SELECT COUNT(*) FROM `user` WHERE `account_status` = 'active'"); 
+$activeUsers = mysqli_fetch_row($stmtUsers)[0]; 
 
-// 1. PENDING LISTINGS 
-$stmtPending = $pdo->query("SELECT COUNT(*) FROM `food_listing` WHERE `status` = 'pending'");
-$pendingListings = $stmtPending->fetchColumn();
+// 3. TOTAL WEIGHT RESCUED  
+$stmtWeight = mysqli_query($conn, "     
+    SELECT SUM((c.portion_claimed / f.total_quantity) * f.weight_kg)      
+    FROM `claim` c      
+    JOIN `food_listing` f ON c.listing_id = f.listing_id      
+    WHERE c.status = 'completed'"); 
+$totalWeightRescued = round(mysqli_fetch_row($stmtWeight)[0] ?? 0, 2); 
 
-// 2. ACTIVE USERS 
-$stmtUsers = $pdo->query("SELECT COUNT(*) FROM `user` WHERE `account_status` = 'active'");
-$activeUsers = $stmtUsers->fetchColumn();
+// 4. AVERAGE PICKUP TIME  
+$stmtTime = mysqli_query($conn, "     
+    SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, confirmed_at))      
+    FROM `claim`      
+    WHERE status = 'completed' AND confirmed_at IS NOT NULL"); 
+$avgPickupTime = round(mysqli_fetch_row($stmtTime)[0] ?? 0); 
 
-// 3. TOTAL WEIGHT RESCUED 
-// calculate formula: (completed claims / total quantity) * food weight
-$stmtWeight = $pdo->query("
-    SELECT SUM((c.portion_claimed / f.total_quantity) * f.weight_kg) 
-    FROM `claim` c 
-    JOIN `food_listing` f ON c.listing_id = f.listing_id 
-    WHERE c.status = 'completed'
-");
-$totalWeightRescued = round($stmtWeight->fetchColumn() ?? 0, 2);
+// --------------------------------------------------------- 
+// CHART data handling 
+// --------------------------------------------------------- 
+// Chart 1: Peak Claim Hours  
+$stmtPeak = mysqli_query($conn, "     
+    SELECT HOUR(created_at) as claim_hour, COUNT(*) as claim_count      
+    FROM `claim`      
+    GROUP BY HOUR(created_at)      
+    ORDER BY claim_hour"); 
+$peakData = mysqli_fetch_all($stmtPeak, MYSQLI_ASSOC); 
 
-// 4. AVERAGE PICKUP TIME (平均取餐时间)
-// calculate formula: average of minutes difference between confirmed_at and created_at for completed orders
-$stmtTime = $pdo->query("
-    SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, confirmed_at)) 
-    FROM `claim` 
-    WHERE status = 'completed' AND confirmed_at IS NOT NULL
-");
-$avgPickupTime = round($stmtTime->fetchColumn() ?? 0);
-
-// ---------------------------------------------------------
-// CHART data handling
-// ---------------------------------------------------------
-
-// Chart 1: Peak Claim Hours 
-$stmtPeak = $pdo->query("
-    SELECT HOUR(created_at) as claim_hour, COUNT(*) as claim_count 
-    FROM `claim` 
-    GROUP BY HOUR(created_at) 
-    ORDER BY claim_hour
-");
-$peakData = $stmtPeak->fetchAll(PDO::FETCH_ASSOC);
-$peakLabels = [];
-$peakCounts = [];
-foreach ($peakData as $row) {
-    // format time as 8am, 2pm, etc.
-    $peakLabels[] = date("ga", strtotime($row['claim_hour'].":00"));
-    $peakCounts[] = $row['claim_count'];
+$peakLabels = []; 
+$peakCounts = []; 
+foreach ($peakData as $row) {     
+    $peakLabels[] = date("ga", strtotime($row['claim_hour'].":00"));     
+    $peakCounts[] = $row['claim_count']; 
 }
 
-// Chart 2: Rescued By Location 
-$stmtLocation = $pdo->query("
-    SELECT f.pickup_location, COUNT(c.claim_id) as claim_count 
-    FROM `claim` c 
-    JOIN `food_listing` f ON c.listing_id = f.listing_id 
-    WHERE c.status = 'completed' 
-    GROUP BY f.pickup_location
-");
-$locationData = $stmtLocation->fetchAll(PDO::FETCH_ASSOC);
-$locationLabels = array_column($locationData, 'pickup_location');
-$locationCounts = array_column($locationData, 'claim_count');
+// Chart 2: Rescued By Location  
+$stmtLocation = mysqli_query($conn, "     
+    SELECT f.pickup_location, COUNT(c.claim_id) as claim_count      
+    FROM `claim` c      
+    JOIN `food_listing` f ON c.listing_id = f.listing_id      
+    WHERE c.status = 'completed'      
+    GROUP BY f.pickup_location"); 
+$locationData = mysqli_fetch_all($stmtLocation, MYSQLI_ASSOC); 
+$locationLabels = array_column($locationData, 'pickup_location'); 
+$locationCounts = array_column($locationData, 'claim_count'); 
 
-// Chart 3: Rescued By Category 
-$stmtCategory = $pdo->query("
-    SELECT t.tag_name, COUNT(c.claim_id) as claim_count 
-    FROM `claim` c 
-    JOIN `food_listing` f ON c.listing_id = f.listing_id 
-    JOIN `food_listing_tags` flt ON f.listing_id = flt.listing_id 
-    JOIN `food_tags` t ON flt.tag_id = t.tag_id 
-    WHERE c.status = 'completed' 
-    GROUP BY t.tag_name
-");
-$categoryData = $stmtCategory->fetchAll(PDO::FETCH_ASSOC);
-$categoryLabels = array_column($categoryData, 'tag_name');
-$categoryCounts = array_column($categoryData, 'claim_count');
+// Chart 3: Rescued By Category  
+$stmtCategory = mysqli_query($conn, "     
+    SELECT t.tag_name, COUNT(c.claim_id) as claim_count      
+    FROM `claim` c      
+    JOIN `food_listing` f ON c.listing_id = f.listing_id      
+    JOIN `food_listing_tags` flt ON f.listing_id = flt.listing_id      
+    JOIN `food_tags` t ON flt.tag_id = t.tag_id      
+    WHERE c.status = 'completed'      
+    GROUP BY t.tag_name"); 
+$categoryData = mysqli_fetch_all($stmtCategory, MYSQLI_ASSOC); 
+$categoryLabels = array_column($categoryData, 'tag_name'); 
+$categoryCounts = array_column($categoryData, 'claim_count'); 
 ?>
 
 <!DOCTYPE html>

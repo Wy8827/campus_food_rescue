@@ -1,94 +1,104 @@
 <?php 
-session_start();
+session_start(); 
+require_once __DIR__ . '/../../config/constants.php'; 
+require_once __DIR__ . '/../../config/session.php'; 
+require_once __DIR__ . '/../../config/db.php'; 
 
-require_once __DIR__ . '/../../config/db.php';
-$pdo = getDB();
+requireRole('admin');  
 
-// ----------------------------------------------------
-// 1. CAPTURE SEARCH & FILTER INPUTS
-// ----------------------------------------------------
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$roleFilter = isset($_GET['role']) ? $_GET['role'] : 'all';
-$statusFilter = isset($_GET['status']) ? $_GET['status'] : 'all';
+// ---------------------------------------------------- 
+// 1. CAPTURE SEARCH & FILTER INPUTS 
+// ---------------------------------------------------- 
+$search = isset($_GET['search']) ? trim($_GET['search']) : ''; 
+$roleFilter = isset($_GET['role']) ? $_GET['role'] : 'all'; 
+$statusFilter = isset($_GET['status']) ? $_GET['status'] : 'all'; 
 
-// Build Dynamic SQL Query Conditions
-$conditions = [];
-$params = [];
+// Build Dynamic SQL Query Conditions 
+$conditions = []; 
+$params = []; 
+$types = ""; // Record mysqli parameter types (s=string, i=int)
 
-if ($search !== '') {
-    // Search by name, email, or exact ID
-    $conditions[] = "(user_name LIKE :search OR email LIKE :search OR user_id = :search_id)";
-    $params[':search'] = '%' . $search . '%';
-    $params[':search_id'] = $search; // Assuming ID is an exact match
+if ($search !== '') {     
+    $conditions[] = "(user_name LIKE ? OR email LIKE ? OR user_id = ?)";     
+    $params[] = '%' . $search . '%';     
+    $params[] = '%' . $search . '%';     
+    $params[] = $search; 
+    $types .= "sss";
+}
+if ($roleFilter !== 'all') {     
+    $conditions[] = "role = ?";     
+    $params[] = $roleFilter; 
+    $types .= "s";
+}
+if ($statusFilter !== 'all') {     
+    $conditions[] = "account_status = ?";     
+    $params[] = $statusFilter; 
+    $types .= "s";
 }
 
-if ($roleFilter !== 'all') {
-    $conditions[] = "role = :role";
-    $params[':role'] = $roleFilter;
+$whereClause = ""; 
+if (count($conditions) > 0) {     
+    $whereClause = " WHERE " . implode(" AND ", $conditions); 
 }
 
-if ($statusFilter !== 'all') {
-    $conditions[] = "account_status = :status";
-    $params[':status'] = $statusFilter;
+// ---------------------------------------------------- 
+// 2. PAGINATION LOGIC 
+// ---------------------------------------------------- 
+$limit = 10; 
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1; 
+if ($page < 1) $page = 1; 
+
+// Get the total number of filtered users 
+$countQuery = "SELECT COUNT(*) FROM `user`" . $whereClause;
+$totalStmt = mysqli_prepare($conn, $countQuery); 
+
+if (!empty($params)) {
+    mysqli_stmt_bind_param($totalStmt, $types, ...$params); 
 }
+mysqli_stmt_execute($totalStmt); 
+$totalResult = mysqli_stmt_get_result($totalStmt);
+$totalUsers = (int)mysqli_fetch_row($totalResult)[0]; 
+mysqli_stmt_close($totalStmt);
 
-// Create the WHERE clause string
-$whereClause = "";
-if (count($conditions) > 0) {
-    $whereClause = " WHERE " . implode(" AND ", $conditions);
+$totalPages = max(1, (int)ceil($totalUsers / $limit)); 
+if ($page > $totalPages && $totalUsers > 0) {     
+    $page = $totalPages; 
 }
+$offset = ($page - 1) * $limit; 
 
-// ----------------------------------------------------
-// 2. PAGINATION LOGIC
-// ----------------------------------------------------
-$limit = 10; // Number of users per page
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($page < 1) $page = 1;
+// ---------------------------------------------------- 
+// 3. FETCH FILTERED DATA WITH ROLE-BASED SEQUENCING
+// Use ROW_NUMBER() to generate an independent auto-increment 
+// sequence starting from 1 for each specific user role.
+// ---------------------------------------------------- 
+$query = "SELECT user_id, user_name, email, role, account_status, no_show_count,
+                 ROW_NUMBER() OVER (PARTITION BY role ORDER BY user_id ASC) AS role_seq
+          FROM `user` " . $whereClause . " 
+          ORDER BY user_id ASC LIMIT ? OFFSET ?";
 
-// Get the total number of filtered users
-$totalStmt = $pdo->prepare("SELECT COUNT(*) FROM `user`" . $whereClause);
-foreach($params as $key => $val) {
-    $totalStmt->bindValue($key, $val);
-}
-$totalStmt->execute();
-$totalUsers = (int)$totalStmt->fetchColumn();
+$stmt = mysqli_prepare($conn, $query); 
 
-$totalPages = max(1, (int)ceil($totalUsers / $limit));
-if ($page > $totalPages && $totalUsers > 0) {
-    $page = $totalPages;
-}
+$fetchParams = $params;
+$fetchParams[] = $limit;
+$fetchParams[] = $offset;
+$fetchTypes = $types . "ii"; // Added LIMIT and OFFSET two integer types
 
-$offset = ($page - 1) * $limit;
+mysqli_stmt_bind_param($stmt, $fetchTypes, ...$fetchParams); 
+mysqli_stmt_execute($stmt); 
+$result = mysqli_stmt_get_result($stmt);
+$users = mysqli_fetch_all($result, MYSQLI_ASSOC); 
+mysqli_stmt_close($stmt);
 
-// ----------------------------------------------------
-// 3. FETCH FILTERED DATA
-// ----------------------------------------------------
-$stmt = $pdo->prepare("SELECT user_id, user_name, email, role, account_status, no_show_count 
-                       FROM `user` 
-                       " . $whereClause . " 
-                       ORDER BY user_id ASC 
-                       LIMIT :limit OFFSET :offset");
+$from = $totalUsers > 0 ? $offset + 1 : 0; 
+$to = min($offset + $limit, $totalUsers); 
 
-// Bind search parameters
-foreach($params as $key => $val) {
-    $stmt->bindValue($key, $val);
-}
-// Bind pagination parameters
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
-$users = $stmt->fetchAll();
-
-$from = $totalUsers > 0 ? $offset + 1 : 0;
-$to = min($offset + $limit, $totalUsers);
-
-// Build query string for pagination links (so filters aren't lost on page 2)
-$urlParams = [
-    'search' => $search,
-    'role' => $roleFilter,
-    'status' => $statusFilter
+// Build query string for pagination links 
+$urlParams = [     
+    'search' => $search,     
+    'role' => $roleFilter,     
+    'status' => $statusFilter 
 ];
-$queryString = http_build_query($urlParams);
+$queryString = http_build_query($urlParams); 
 ?>
 
 <!DOCTYPE html>
@@ -126,12 +136,11 @@ $queryString = http_build_query($urlParams);
                     </div>
                 </div>
 
-                <!-- UPDATED: Changed div to form and added onchange auto-submit -->
+                <!-- Search and Filter Form -->
                 <form method="GET" action="" class="search-container">
-                    <!-- Search input retains its value after submission -->
                     <input type="text" name="search" class="search-input" placeholder="Search by name, email, or ID" value="<?= htmlspecialchars($search) ?>">
                     
-                    <!-- Dropdowns auto-submit the form when changed -->
+                    <!-- Role Filter Dropdown -->
                     <select name="role" class="filter-selection" onchange="this.form.submit()">
                         <option value="all" <?= $roleFilter === 'all' ? 'selected' : '' ?>>All Roles</option>
                         <option value="admin" <?= $roleFilter === 'admin' ? 'selected' : '' ?>>Admin</option>
@@ -139,15 +148,14 @@ $queryString = http_build_query($urlParams);
                         <option value="provider" <?= $roleFilter === 'provider' ? 'selected' : '' ?>>Food Provider</option>
                     </select>
 
+                    <!-- Status Filter Dropdown (Matched with database ENUM lowercase values) -->
                     <select name="status" class="filter-selection" onchange="this.form.submit()">
                         <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All Status</option>
                         <option value="active" <?= $statusFilter === 'active' ? 'selected' : '' ?>>Active</option>
-                        <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>Pending</option>
-                        <option value="Throttled" <?= $statusFilter === 'Throttled' ? 'selected' : '' ?>>Throttled</option>
-                        <option value="Banned" <?= $statusFilter === 'Banned' ? 'selected' : '' ?>>Banned</option>
+                        <option value="throttled" <?= $statusFilter === 'throttled' ? 'selected' : '' ?>>Throttled</option>
+                        <option value="banned" <?= $statusFilter === 'banned' ? 'selected' : '' ?>>Banned</option>
                     </select>
                     
-                    <!-- Hidden submit button so pressing 'Enter' in the text box works naturally -->
                     <button type="submit" style="display: none;"></button>
                 </form>
 
@@ -169,9 +177,11 @@ $queryString = http_build_query($urlParams);
                                     $statusLower = strtolower($user['account_status']);
                                     $roleLower = strtolower($user['role']);
                                     
+                                    // Generate user initials for avatar
                                     $words = explode(" ", $user['user_name']);
                                     $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($words[1], 0, 1) : ''));
                                     
+                                    // Credit score calculation based on no-show count
                                     $noShow = isset($user['no_show_count']) ? (int)$user['no_show_count'] : 0;
                                     $creditScore = max(0, 100 - ($noShow * 14)); 
 
@@ -181,11 +191,16 @@ $queryString = http_build_query($urlParams);
                                     
                                     $noShowClass = $noShow >= 2 ? 'no-show-high' : '';
 
+                                    // Role configuration for icons and display prefixes
                                     $roleIcon = [
-                                        'admin' => '<ion-icon name="shield-half-outline"></ion-icon>',
-                                        'provider' => '<ion-icon name="restaurant-outline"></ion-icon>',
-                                        'student' => '<ion-icon name="school-outline"></ion-icon>',
+                                        'admin' => ['icon' => '<ion-icon name="shield-half-outline"></ion-icon>', 'prefix' => 'A'],
+                                        'provider' => ['icon' => '<ion-icon name="restaurant-outline"></ion-icon>', 'prefix' => 'P'],
+                                        'student' => ['icon' => '<ion-icon name="school-outline"></ion-icon>', 'prefix' => 'S'],
                                     ];
+
+                                    // Construct role-based sequential display ID (e.g., S1, S2, P1, A1)
+                                    $prefix = $roleIcon[$roleLower]['prefix'] ?? '';
+                                    $displayId = $prefix . $user['role_seq'];
                                 ?>
                                     <tr class="row-<?= $statusLower ?>">
                                         <td>
@@ -193,13 +208,13 @@ $queryString = http_build_query($urlParams);
                                                 <div class="avatar avatar-<?= $roleLower ?>"><?= $initials ?></div>
                                                 <div class="user-info">
                                                     <div class="user-name"><?= htmlspecialchars($user['user_name']) ?></div>
-                                                    <div class="user-meta"><?= htmlspecialchars($user['user_id']) ?> &bull; <?= htmlspecialchars($user['email']) ?></div>
+                                                    <div class="user-meta"><?= $displayId ?> &bull; <?= htmlspecialchars($user['email']) ?></div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
                                             <span class="role-badge role-<?= $roleLower ?>">
-                                                <span class="role-icon"><?= $roleIcon[$roleLower] ?? '' ?></span>
+                                                <span class="role-icon"><?= $roleIcon[$roleLower]['icon'] ?? '' ?></span>
                                                 <?= ucfirst(htmlspecialchars($user['role'])) ?>
                                             </span>
                                         </td>
@@ -234,7 +249,7 @@ $queryString = http_build_query($urlParams);
                         </tbody>
                     </table>
 
-                    <!-- UPDATED: Pagination now includes search parameters -->
+                    <!-- Pagination Footer -->
                     <div class="user-list-footer">
                         <span class="showing-text">Showing <?= $from ?>-<?= $to ?> of <?= $totalUsers ?> Users</span>
                         <div class="pagination">

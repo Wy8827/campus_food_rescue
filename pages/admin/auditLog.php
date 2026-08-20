@@ -1,74 +1,75 @@
-<?php 
+<?php  
 session_start(); 
-require_once __DIR__ . '/../../config/db.php';
-$pdo = getDB();
+require_once __DIR__ . '/../../config/constants.php'; 
+require_once __DIR__ . '/../../config/session.php'; 
+require_once __DIR__ . '/../../config/db.php'; 
 
-// --- 1. get statistics ---
-// Total entries
-$stmtTotal = $pdo->query("SELECT (SELECT COUNT(*) FROM listing_audit_log) + (SELECT COUNT(*) FROM user_audit_log) AS total");
-$totalEntries = $stmtTotal->fetch()['total'];
+requireRole('admin');   
 
-// Critical actions in the last 24 hours (e.g., removing a listing or banning a user)
-$criticalQuery = "
-    SELECT 
-        (SELECT COUNT(*) FROM listing_audit_log WHERE action_type = 'remove_listing' AND performed_at >= NOW() - INTERVAL 1 DAY) +
-        (SELECT COUNT(*) FROM user_audit_log WHERE action_type = 'ban_user' AND performed_at >= NOW() - INTERVAL 1 DAY) AS critical_total
-";
-$stmtCritical = $pdo->query($criticalQuery);
-$criticalActions = $stmtCritical->fetch()['critical_total'];
+// --- 1. get statistics --- 
+// Total entries 
+$queryTotal = "SELECT (SELECT COUNT(*) FROM listing_audit_log) + (SELECT COUNT(*) FROM user_audit_log) AS total";
+$stmtTotal = mysqli_query($conn, $queryTotal); 
+$totalEntries = mysqli_fetch_assoc($stmtTotal)['total']; 
 
-// Active administrator count
-$stmtAdmin = $pdo->query("SELECT COUNT(*) AS active_admins FROM user WHERE role = 'admin' AND account_status = 'active'");
-$activeAdmins = $stmtAdmin->fetch()['active_admins'];
+// Critical actions in the last 24 hours 
+$criticalQuery = "     
+    SELECT          
+        (SELECT COUNT(*) FROM listing_audit_log WHERE action_type = 'remove_listing' AND performed_at >= NOW() - INTERVAL 1 DAY) +         
+        (SELECT COUNT(*) FROM user_audit_log WHERE action_type = 'ban_user' AND performed_at >= NOW() - INTERVAL 1 DAY) AS critical_total"; 
+$stmtCritical = mysqli_query($conn, $criticalQuery); 
+$criticalActions = mysqli_fetch_assoc($stmtCritical)['critical_total']; 
 
-$limit = 10; 
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($page < 1) $page = 1;
+// Active administrator count 
+$stmtAdmin = mysqli_query($conn, "SELECT COUNT(*) AS active_admins FROM user WHERE role = 'admin' AND account_status = 'active'"); 
+$activeAdmins = mysqli_fetch_assoc($stmtAdmin)['active_admins']; 
 
-$totalPages = max(1, (int)ceil($totalEntries / $limit));
-if ($page > $totalPages && $totalEntries > 0) {
-    $page = $totalPages;
+$limit = 10;  
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1; 
+if ($page < 1) $page = 1; 
+$totalPages = max(1, (int)ceil($totalEntries / $limit)); 
+
+if ($page > $totalPages && $totalEntries > 0) {     
+    $page = $totalPages; 
 }
-$offset = ($page - 1) * $limit;
+$offset = ($page - 1) * $limit; 
 
-// calculate $from and $to for frontend display
-$from = $totalEntries > 0 ? $offset + 1 : 0;
-$to = min($offset + $limit, $totalEntries);
+// calculate $from and $to for frontend display 
+$from = $totalEntries > 0 ? $offset + 1 : 0; 
+$to = min($offset + $limit, $totalEntries); 
 
-// --- 2. get all Audit Logs (combining data from both tables) ---
-$logQuery = "
-    SELECT * FROM (
-        SELECT 
-            lal.performed_at AS timestamp,
-            u.user_name AS admin_name,
-            lal.admin_id AS admin_id, 
-            lal.action_type AS action_type,
-            CONCAT('Listing ID: ', lal.listing_id) AS target_entity,
-            lal.notes AS details
-        FROM listing_audit_log lal
-        JOIN user u ON lal.admin_id = u.user_id
+// --- 2. get all Audit Logs (combining data from both tables) --- 
+$logQuery = "     
+    SELECT * FROM (         
+        SELECT              
+            lal.performed_at AS timestamp,             
+            u.user_name AS admin_name,             
+            lal.admin_id AS admin_id,              
+            lal.action_type AS action_type,             
+            CONCAT('Listing ID: ', lal.listing_id) AS target_entity,             
+            lal.notes AS details         
+        FROM listing_audit_log lal         
+        JOIN user u ON lal.admin_id = u.user_id         
+        UNION ALL         
+        SELECT              
+            ual.performed_at AS timestamp,             
+            u.user_name AS admin_name,             
+            ual.admin_id AS admin_id,              
+            ual.action_type AS action_type,             
+            CONCAT('User ID: ', ual.affected_user_id) AS target_entity,             
+            ual.notes AS details         
+        FROM user_audit_log ual         
+        JOIN user u ON ual.admin_id = u.user_id     
+    ) AS combined_logs     
+    ORDER BY timestamp DESC     
+    LIMIT ? OFFSET ?"; 
 
-        UNION ALL
-
-        SELECT 
-            ual.performed_at AS timestamp,
-            u.user_name AS admin_name,
-            ual.admin_id AS admin_id, 
-            ual.action_type AS action_type,
-            CONCAT('User ID: ', ual.affected_user_id) AS target_entity,
-            ual.notes AS details
-        FROM user_audit_log ual
-        JOIN user u ON ual.admin_id = u.user_id
-    ) AS combined_logs
-    ORDER BY timestamp DESC
-    LIMIT :limit OFFSET :offset
-";
-$stmtLogs = $pdo->prepare($logQuery);
-$stmtLogs->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmtLogs->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmtLogs->execute();
-$logs = $stmtLogs->fetchAll();
-
+$stmtLogs = mysqli_prepare($conn, $logQuery); 
+mysqli_stmt_bind_param($stmtLogs, "ii", $limit, $offset); 
+mysqli_stmt_execute($stmtLogs); 
+$resultLogs = mysqli_stmt_get_result($stmtLogs);
+$logs = mysqli_fetch_all($resultLogs, MYSQLI_ASSOC); 
+mysqli_stmt_close($stmtLogs);
 ?>
 
 <!DOCTYPE html>

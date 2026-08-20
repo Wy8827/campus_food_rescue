@@ -30,3 +30,50 @@ if (editBtn) {
         }
     });
 }
+
+// -----------------------------------------
+// Alert Switches Toggle Logic
+// -----------------------------------------
+const switches = document.querySelectorAll('.switch');
+switches.forEach(img => {
+    img.addEventListener('click', () => {
+        if (img.src.includes('off.png')) {
+            img.src = '../../assets/images/on.png';
+            img.alt = 'on Icon';
+        } else {
+            img.src = '../../assets/images/off.png';
+            img.alt = 'off Icon';
+        }
+    });
+});
+
+// -----------------------------------------
+// Password Verification Method Toggle Logic
+// -----------------------------------------
+const toggleSecurityBtn = document.getElementById('toggle-security-btn');
+const togglePasswordBtn = document.getElementById('toggle-password-btn');
+const currentPasswordGroup = document.getElementById('current-password-group');
+const securityQuestionGroup = document.getElementById('security-question-group');
+const useSecurityInput = document.getElementById('use_security_question');
+const currentPasswordInput = document.getElementById('current_password');
+const securityAnswerInput = document.getElementById('security_answer_input');
+
+if (toggleSecurityBtn && togglePasswordBtn) {
+    // Switch to Security Question verification
+    toggleSecurityBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        currentPasswordGroup.style.display = 'none';
+        securityQuestionGroup.style.display = 'flex';
+        useSecurityInput.value = 'yes';
+        currentPasswordInput.value = ''; // Clear current password input to prevent conflicts
+    });
+
+    // Switch back to Current Password verification
+    togglePasswordBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        securityQuestionGroup.style.display = 'none';
+        currentPasswordGroup.style.display = 'flex';
+        useSecurityInput.value = 'no';
+        securityAnswerInput.value = ''; // Clear security answer input
+    });
+}
