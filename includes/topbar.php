@@ -1,8 +1,6 @@
 <?php
 $userName = $_SESSION['user_name'] ?? 'student';
 $roleLower = strtolower($_SESSION['role'] ?? 'student');
-$email = $_SESSION['email'] ?? 'student@gmail.com';
-$userId = $_SESSION['user_id'] ?? 1;
 
 $words = explode(" ", $userName);
 $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($words[1], 0, 1) : ''));

@@ -44,8 +44,8 @@
 
 <aside class="sidebar">
     <div class="sidebar-header">
-        <span><img src="../../assets/images/logo.png" alt="Campus Food Rescue Logo" width="50" style="margin-left: 6px;"></span>
-        <span class="brand-text">Campus Food Rescue <br> <span class="brand-subtext"><?= htmlspecialchars($portal_title) ?></span></span>
+            <span><img src="../../assets/images/logo.png" alt="Campus Food Rescue Logo" width="50" style="margin-left: 6px;"></span>
+            <span class="brand-text">Campus Food Rescue <br> <span class="brand-subtext"><?= htmlspecialchars($portal_title) ?></span></span>
     </div>
 
     <div class="sidebar-navigation-container">

@@ -1,6 +1,6 @@
 <nav class="navbar">
   <div class="nav-logo">
-    <a href="../index.php">Campus Food Rescue</a>
+    <a href="../../index1.php">Campus Food Rescue</a>
   </div>
 
   <div class="nav-links">
@@ -11,8 +11,8 @@
   </div>
 
   <div class="nav-actions">
-    <a class="nav-login" href="../auth/login.php">Login</a>
-    <a class="nav-signup" href="../auth/register.php">Sign Up</a>
+    <a class="nav-login" href="/food_rescue/pages/auth/login.php">Login</a>
+    <a class="nav-signup" href="/food_rescue/pages/auth/register.php">Sign Up</a>
   </div>
 
   <button class="mobile-menu-btn" id="mobileMenuBtn">
@@ -27,11 +27,11 @@
     <a href="#">About</a>
     <a href="#">FAQ</a>
 
-    <a href="../auth/login.php">
+    <a href="/food_rescue/pages/auth/login.php">
         Login
     </a>
 
-    <a href="../auth/register.php">
+    <a href="/food_rescue/pages/auth/register.php">
         Sign Up
     </a>
 

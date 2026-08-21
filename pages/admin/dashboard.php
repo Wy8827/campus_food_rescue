@@ -246,8 +246,6 @@ $categoryCounts = array_column($categoryData, 'claim_count');
                     });
                 </script>
 
-                
-
             </div>
 
             
