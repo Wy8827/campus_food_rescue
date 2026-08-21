@@ -1,6 +1,6 @@
 <nav class="navbar">
   <div class="nav-logo">
-    <a href="../../index1.php">Campus Food Rescue</a>
+    <a href="../../index.php">Campus Food Rescue</a>
   </div>
 
   <div class="nav-links">

@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       
         if($user['role'] === 'admin') {
           header("Location: " . BASE_URL . "/pages/admin/dashboard.php");
-        } elseif ($user['role'] === '') {
-          header("Location: " . BASE_URL . "/pages/provider/dashboard.php");
+        } elseif ($user['role'] === 'provider') {
+          header("Location: " . BASE_URL . "/pages/food_provider/dashboard.php");
         } else {
           header("Location: " . BASE_URL . "/pages/student/dashboard.php");
         }

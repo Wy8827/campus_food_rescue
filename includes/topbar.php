@@ -1,5 +1,5 @@
 <?php
-$userName = $_SESSION['user_name'] ?? 'student';
+$userName = $_SESSION['user_name'] ?? 'Guest';
 $roleLower = strtolower($_SESSION['role'] ?? 'student');
 
 $words = explode(" ", $userName);
@@ -21,7 +21,7 @@ $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($wor
                 </div>
             </div>
         </a>
-
-        <button class="logout-btn" onclick="window.location.href='../../pages/auth/logout.php'">Logout</button>
+        <button class="logout-btn" onclick="window.location.href='/food_rescue/pages/auth/logout.php'">Logout</button>
+        
     </div>
 </header>

@@ -1,1 +1,1 @@
-<?php echo password_hash('123', PASSWORD_BCRYPT), PHP_EOL;?>
+<?php echo password_hash('nasilemak', PASSWORD_BCRYPT), PHP_EOL;?>
