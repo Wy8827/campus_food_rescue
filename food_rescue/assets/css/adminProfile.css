@@ -1,0 +1,223 @@
+/* =========================================
+   adminProfile.css 
+   ========================================= */
+
+/* General Styles */
+.profile-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.alert-setting {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.alert-setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #F3F4F6;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.alert-setting-item:last-child {
+    border-bottom: none;
+}
+
+.profile-info-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    gap: 24px;
+    margin-top: 10px;
+    margin-bottom: 24px;
+}
+
+.profile-info-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-info-item br {
+    display: none;
+}
+
+.info-label, .setting-label {
+    color: #4B5563;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.role-value {
+    font-size: 14px;
+    color: #1F2937;
+    background-color: #F9FAFB;
+    border: solid 1px #D1D5DB;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-radius: 8px;
+}
+
+.info-value {
+    font-size: 14px;
+    color: #1F2937;
+    background-color: #F9FAFB;
+    border: solid 1px #D1D5DB;
+    padding: 12px 14px;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    outline: none;
+}
+
+.info-value:focus {
+    border-color: #275300;
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(39, 83, 0, 0.1);
+}
+
+.switch {
+    width: 44px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.switch:active {
+    transform: scale(0.95);
+}
+
+.security-settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.security-setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setting-label-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.setting-label {
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+.setting-value {
+    margin-left: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+/* button enhancement use green solid button enhance CTA*/
+.update-btn {
+    width: auto;
+    min-width: 160px;
+    height: 42px;
+    padding: 0 24px;
+    color: #FFFFFF;
+    background-color: #275300;
+    border: none;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.update-btn:hover {
+    background-color: #3b711a;
+}
+
+.update-btn:active {
+    transform: scale(0.98);
+}
+
+.info-value:not([readonly]) {
+    background-color: #FFFFFF;
+    border-color: #275300; 
+    box-shadow: 0 0 0 3px rgba(39, 83, 0, 0.1); /* 绿色发光外圈 */
+    color: #111827;
+    cursor: text;
+}
+
+.info-value:not([readonly]):hover {
+    border-color: #3b711a;
+}
+
+.export-button.cancel-mode {
+    color: #DC2626;
+    border-color: #DC2626;
+    background-color: #FEF2F2;
+}
+
+@media (max-width: 768px) {
+    .side-column .quick-links-container {
+        display: block !important;
+        margin-bottom: 16px;
+    }
+    .user-page-header {
+        flex-direction: column !important;
+        gap: 14px;
+        align-items: flex-start !important;
+        margin-bottom: 20px;
+    }
+    .user-page-header-left {
+        width: 100% !important;
+    }
+    .user-page-header-right {
+        width: 100% !important;
+        display: flex;
+        gap: 10px;
+    }
+    .user-page-header-right button {
+        flex: 1; 
+        height: 40px !important;
+        font-size: 13px !important;
+    }
+    .profile-info-container {
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+    .profile-info-item {
+        width: 100% !important;
+    }
+    .setting-label-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .setting-value {
+        margin-left: 0 !important;
+        margin-bottom: 6px;
+    }
+    .update-btn {
+        width: 100% !important;
+        text-align: center;
+    }
+    .alert-setting-item {
+        padding: 12px 0;
+        font-size: 14px;
+    }
+}
