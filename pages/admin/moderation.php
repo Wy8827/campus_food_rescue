@@ -118,6 +118,44 @@ if ($currentView === 'food') {
     <script type="module" src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.js"></script>
     <title>List Moderation</title>
+    <style>
+        /* New Styles for the View Toggle Buttons */
+        .view-tabs {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            border-bottom: 1px solid #EAECF0;
+            padding-bottom: 12px;
+        }
+        .tab-btn {
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #667085;
+            background-color: #F2F4F7;
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background-color: #385E29;
+            color: #FFFFFF;
+        }
+        .tab-btn:hover:not(.active) {
+            background-color: #E4E7EC;
+        }
+        .provider-icon-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #F2F4F7;
+            border-radius: 8px;
+            color: #98A2B3;
+            font-size: 48px;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">

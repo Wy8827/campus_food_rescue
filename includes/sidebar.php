@@ -19,10 +19,12 @@
             ['url' => 'auditLog.php',        'title' => 'Audit Log',        'icon' => '../../assets/images/auditlog.png'],
         ],
         'provider' => [
-            ['url' => 'dashboard.php',       'title' => 'Provider Overview','icon' => '../../assets/images/overview.png'],
-            ['url' => 'manageListings.php',  'title' => 'My Listings',      'icon' => '../../assets/images/moderation.png'],
-            ['url' => 'claimVerification.php','title' => 'Verify Claims',   'icon' => '../../assets/images/auditlog.png'],
-            ['url' => 'impactReport.php',    'title' => 'Donation Impact',  'icon' => '../../assets/images/impact.png'],
+            ['url' => 'dashboard.php',       'title' => 'Dashboard',        'icon' => '../../assets/images/overview.png'],
+            ['url' => 'createListing.php',   'title' => 'Create Listing',   'icon' => '../../assets/images/adduser.png'],
+            ['url' => 'manageListings.php',  'title' => 'Manage Listings',  'icon' => '../../assets/images/moderation.png'],
+            ['url' => 'claimTracker.php',    'title' => 'Claim Tracker',    'icon' => '../../assets/images/usermanagement.png', 'badge_var' => 'provider_pending_claims_badge'],
+            ['url' => 'qrScanner.php',       'title' => 'QR Scanner',       'icon' => '../../assets/images/auditlog.png'],
+            ['url' => 'impact.php',          'title' => 'My Impact',        'icon' => '../../assets/images/impact.png'],
         ],
         'student' => [
             ['url' => 'dashboard.php',       'title' => 'Browse Food',      'icon' => '../../assets/images/overview.png'],
@@ -35,7 +37,7 @@
 
     $profile_pages = [
         'admin'    => 'adminprofile.php',
-        'provider' => 'providerProfile.php',
+        'provider' => 'profile.php',
         'student'  => 'studentProfile.php',
     ];
     
@@ -44,17 +46,25 @@
 
 <aside class="sidebar">
     <div class="sidebar-header">
-            <span><img src="../../assets/images/logo.png" alt="Campus Food Rescue Logo" width="50" style="margin-left: 6px;"></span>
-            <span class="brand-text">Campus Food Rescue <br> <span class="brand-subtext"><?= htmlspecialchars($portal_title) ?></span></span>
+        <span><img src="../../assets/images/logo.png" alt="Campus Food Rescue Logo" width="50" style="margin-left: 6px;"></span>
+        <span class="brand-text">Campus Food Rescue <br> <span class="brand-subtext"><?= htmlspecialchars($portal_title) ?></span></span>
     </div>
 
     <div class="sidebar-navigation-container">
         <ul class="sidebar-navigation">
-            <?php foreach ($current_menu as $item): ?>
+            <?php foreach ($current_menu as $item):
+                $badgeCount = null;
+                if (isset($item['badge_var']) && isset($GLOBALS[$item['badge_var']])) {
+                    $badgeCount = (int)$GLOBALS[$item['badge_var']];
+                }
+            ?>
                 <li class="nav-container <?= ($current_page == $item['url']) ? 'active' : '' ?>">
                     <a href="<?= htmlspecialchars($item['url']) ?>">
                         <span class="nav-icon"><img src="<?= htmlspecialchars($item['icon']) ?>" alt="<?= htmlspecialchars($item['title']) ?>"></span>
                         <span class="nav-text"><?= htmlspecialchars($item['title']) ?></span>
+                        <?php if ($badgeCount !== null && $badgeCount > 0): ?>
+                            <span class="sb-badge"><?= $badgeCount ?></span>
+                        <?php endif; ?>
                     </a>
                 </li>
             <?php endforeach;?>

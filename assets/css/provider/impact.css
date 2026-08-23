@@ -1,0 +1,147 @@
+/* =========================================
+   impact.css — styles used ONLY on impact.php
+   (period tabs, hero cards, bar/donut charts,
+   milestones). The completed-history table at
+   the bottom of this page reuses .ct-table-wrap
+   and .badge, which live in the shared provider.css
+   since claimTracker.php uses the same table look.
+   ========================================= */
+
+.im-period-tabs {
+    display: flex;
+    gap: 4px;
+    background-color: #F4F4F5;
+    border-radius: 8px;
+    padding: 4px;
+    width: fit-content;
+    margin: 20px 0 24px;
+}
+
+.im-ptab {
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #52525B;
+    border: none;
+    background: none;
+    text-decoration: none;
+}
+
+.im-ptab:hover { text-decoration: none; }
+.im-ptab.active { background-color: #FFFFFF; color: #27272A; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* ===================== Hero cards ===================== */
+.im-hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.im-hero-card {
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.im-hero-card.im-green { background-color: #3B711A; color: #FFFFFF; }
+.im-hero-card.im-light { background-color: #FFFFFF; border: 1px solid #E4E4E7; }
+
+.im-hero-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-size: 20px;
+}
+
+.im-hero-icon.im-white { background-color: rgba(255,255,255,0.2); }
+.im-hero-icon.im-green-bg { background-color: #F0F7E8; color: #3B711A; }
+
+.im-hero-num { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.im-hero-label { font-size: 12px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; }
+.im-hero-sub { font-size: 11px; margin-top: 8px; opacity: 0.7; }
+.im-hero-num.im-dark { color: #27272A; }
+.im-hero-label.im-dark { color: #A1A1AA; opacity: 1; }
+.im-hero-sub.im-dark { color: #A1A1AA; opacity: 1; }
+
+/* ===================== Charts row ===================== */
+.im-charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.im-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E4E7;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.im-card-title { font-size: 14px; font-weight: 600; color: #27272A; margin-bottom: 4px; }
+.im-card-sub { font-size: 12px; color: #A1A1AA; margin-bottom: 20px; }
+
+/* ===================== Bar chart ===================== */
+.im-bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+.im-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 4px; height: 100%; justify-content: flex-end; }
+.im-bar { width: 100%; border-radius: 4px 4px 0 0; background-color: #3B711A; transition: opacity 0.2s; }
+.im-bar:hover { opacity: 0.8; }
+.im-bar-label { font-size: 10px; color: #A1A1AA; }
+.im-bar-val { font-size: 10px; color: #52525B; font-weight: 600; }
+
+/* ===================== Donut chart ===================== */
+.im-donut-wrap { display: flex; flex-direction: column; align-items: center; }
+.im-donut-svg { width: 100px; height: 100px; margin-bottom: 12px; }
+.im-donut-legend { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.im-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.im-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.im-legend-name { flex: 1; color: #52525B; }
+.im-legend-val { color: #27272A; font-weight: 600; }
+
+/* ===================== Milestones ===================== */
+.im-milestones {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.im-milestone {
+    border: 1px solid #E4E4E7;
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.im-milestone.im-achieved { border-color: #3B711A; background-color: #F0F7E8; }
+
+.im-ms-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.im-ms-icon.im-done { background-color: #3B711A; }
+.im-ms-icon.im-todo { background-color: #F4F4F5; }
+.im-ms-title { font-size: 12px; font-weight: 600; color: #27272A; }
+.im-ms-sub { font-size: 11px; color: #A1A1AA; margin-top: 2px; }
+
+@media (max-width: 768px) {
+    .im-hero { grid-template-columns: 1fr; }
+    .im-charts-row { grid-template-columns: 1fr; }
+    .im-milestones { grid-template-columns: 1fr 1fr; }
+}

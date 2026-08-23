@@ -3,9 +3,18 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../../config/session.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if (isLoggedIn()) {
+// Only auto-redirect away from the login page on a normal page visit (GET).
+// If this is a POST (someone submitting the login form), always let it
+// fall through to the credential check below — even if a session for a
+// DIFFERENT account already exists in this browser. Without this check,
+// submitting new credentials while already logged in as someone else
+// gets silently ignored and just bounces back to the OLD session's
+// dashboard, because isLoggedIn() is already true before $_POST is ever read.
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isLoggedIn()) {
   $role = getRole();
-  header("Location: " . BASE_URL . "/pages/$role/dashboard.php");
+  $roleFolders = ['admin' => 'admin', 'provider' => 'food_provider', 'student' => 'student'];
+  $folder = $roleFolders[$role] ?? 'student';
+  header("Location: " . BASE_URL . "/pages/$folder/dashboard.php");
   exit();
 }
 
@@ -36,6 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if($user['account_status'] === 'banned') {
         $error_msg = 'Your account has been banned. Please contact support.';
       } else {
+        // Regenerate the session ID whenever a login succeeds — especially
+        // important here since the same browser might already hold a
+        // session for a different account (see the guard above).
+        session_regenerate_id(true);
+
         $_SESSION['user_id'] = $user['user_id'];
         $_SESSION['user_name'] = $user['user_name'];
         $_SESSION['role'] = $user['role'];
@@ -63,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Page</title>
+  <title>Document</title>
   <link rel="stylesheet" href="../../assets/css/global.css">
   <link rel="stylesheet" href="../../assets/css/public_navbar_footer.css">
   <link rel="stylesheet" href="../../assets/css/auth.css">

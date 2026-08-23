@@ -326,42 +326,6 @@
     background-color: #898e95dd;
 }
 
- /* CSS for the floating modal overlay to keep it centered on screen */
-.modal-overlay {
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh;
-    background: rgba(16, 24, 40, 0.6); 
-    backdrop-filter: blur(4px);
-    z-index: 9999; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
-}
-
-.modal-content {
-    background: #FFFFFF; 
-    border-radius: 12px; 
-    padding: 24px;
-    width: 90%; 
-    max-width: 500px; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    animation: modalFadeIn 0.2s ease-out;
-}
-
-/* 1. EDIT USER MODAL (Modernized UI) */
-/* Smooth focus effects for inputs */
-.modern-input { outline: none; transition: all 0.2s ease; }
-.modern-input:focus { border-color: #275300 !important; box-shadow: 0 0 0 3px rgba(39, 83, 0, 0.1) !important; }
-.btn-secondary:hover { background-color: #F3F4F6 !important; }
-.btn-primary:hover { background-color: #1e3f00 !important; }
-
-@keyframes modalFadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
 
 @media (max-width: 768px) {
     .user-page-header {
