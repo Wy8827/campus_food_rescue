@@ -97,6 +97,77 @@ function getPendingClaimsCount(mysqli $conn, int $providerId): int {
 }
 
 /**
+ * Fetches this provider's approval status. Registration always inserts
+ * a new provider row as 'pending_approval' (the schema default), and
+ * admin's existing moderation.php already Approve/Suspend it — this
+ * just reads that state back for the gate below.
+ */
+function getProviderApprovalStatus(mysqli $conn, int $providerId): string {
+    $stmt = mysqli_prepare($conn, "SELECT provider_status FROM provider WHERE provider_id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $providerId);
+    mysqli_stmt_execute($stmt);
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+    return $row['provider_status'] ?? 'pending_approval';
+}
+
+/**
+ * Gate called right after getProviderId() on every food_provider page.
+ * If the account isn't 'active' yet, renders a holding page (still
+ * wrapped in the real sidebar/topbar so Settings/Logout stay reachable)
+ * instead of that page's real content, and exits — so the calling page
+ * needs nothing beyond this one call.
+ */
+function requireApprovedProvider(mysqli $conn, int $providerId, int $badgeCount = 0): void {
+    $status = getProviderApprovalStatus($conn, $providerId);
+    if ($status === 'active') {
+        return;
+    }
+
+    if ($status === 'suspended') {
+        $title = 'Account Suspended';
+        $message = 'Your provider account has been suspended by an admin. Please contact support if you believe this is a mistake.';
+        $icon = '⛔';
+    } else {
+        $title = 'Pending Admin Approval';
+        $message = "Your provider application is still being reviewed. You'll be able to create and manage listings once an admin approves your account.";
+        $icon = '⏳';
+    }
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="../../assets/css/sidebar.css">
+        <link rel="stylesheet" href="../../assets/css/topbar.css">
+        <link rel="stylesheet" href="../../assets/css/dashboard.css">
+        <link rel="stylesheet" href="../../assets/css/provider/provider.css">
+        <title><?= htmlspecialchars($title) ?></title>
+    </head>
+    <body>
+        <div class="dashboard-container">
+            <?php $provider_pending_claims_badge = $badgeCount; include __DIR__ . '/../../includes/sidebar.php'; ?>
+            <div class="main-content">
+                <div class="topbar-container">
+                    <?php include __DIR__ . '/../../includes/topbar.php'; ?>
+                </div>
+                <div class="content-container" style="align-items:center; justify-content:center; min-height:60vh;">
+                    <div style="max-width:420px; margin:60px auto; text-align:center; background:#FFFFFF; border:1px solid #E4E4E7; border-radius:12px; padding:40px 32px;">
+                        <div style="font-size:40px; margin-bottom:16px;"><?= $icon ?></div>
+                        <h2 style="margin-bottom:10px; color:#101828;"><?= htmlspecialchars($title) ?></h2>
+                        <p style="color:#667085; font-size:14px; line-height:1.6;"><?= htmlspecialchars($message) ?></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit();
+}
+
+/**
  * Countdown/elapsed string for a claim's reservation hold, used on the
  * Claim Tracker table ("4m 32s" while pending, "Ended" once past).
  */

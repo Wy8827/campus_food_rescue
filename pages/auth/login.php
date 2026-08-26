@@ -20,6 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isLoggedIn()) {
 
 $error_msg = '';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['registered'])) {
+  $success_msg = 'Account created! Please log in.';
+} elseif ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['pending'])) {
+  $success_msg = 'Application submitted! You can log in now, but you\'ll need admin approval before you can post listings.';
+} else {
+  $success_msg = '';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $email = trim($_POST['txtEmail'] ?? '');
   $password = $_POST['txtPassword'] ?? '';
@@ -95,6 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <h1 class="auth-title">Welcome Back</h1>
       <p class="auth-sub">Sign in to manage institutional logistics and sustainability tracking.</p>
+
+      <?php if (!empty($success_msg)): ?>
+        <div style="color: #155724; background-color: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center; border: 1px solid #c3e6cb;">
+          <?= htmlspecialchars($success_msg) ?>
+        </div>
+      <?php endif; ?>
 
       <?php if (!empty($error_msg)): ?>
         <div style="color: #d9534f; background-color: #fdf7f7; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center; border: 1px solid #ebccd1;">

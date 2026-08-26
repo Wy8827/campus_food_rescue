@@ -14,6 +14,9 @@ if (!$providerId) {
     die("No provider profile is linked to this account yet. Please contact support.");
 }
 
+
+// Gate: block all provider functionality until an admin approves the account
+requireApprovedProvider($conn, $providerId);
 // Monthly food-rescue goal used for the progress bar (kg). A real
 // deployment might store this per-provider; kept as a constant here
 // to keep the demo simple and explainable.

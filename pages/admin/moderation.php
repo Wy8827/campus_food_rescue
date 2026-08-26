@@ -37,48 +37,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
             mysqli_stmt_close($stmtLog);
 
         } elseif ($type === 'provider') {
-            // Determine statuses and log actions
-            $providerStatus = ($action === 'approve') ? 'active' : 'suspended';
-            $accountStatus  = ($action === 'approve') ? 'active' : 'suspended';
-            $logAction      = ($action === 'approve') ? 'approve_provider' : 'reject_provider';
-            $notes          = ($action === 'approve') 
-                                ? 'Provider registration approved via List Moderation' 
-                                : 'Provider registration rejected via List Moderation';
+            // Provider Registration Moderation Logic
+            $newStatus = ($action === 'approve') ? 'active' : 'suspended';
+            $logAction = ($action === 'approve') ? 'approved' : 'suspended';
 
-            // 1. Fetch the user_id associated with this provider
-            $getUserQ = "SELECT user_id, provider_name FROM provider WHERE provider_id = ?";
-            $stmtUser = mysqli_prepare($conn, $getUserQ);
-            mysqli_stmt_bind_param($stmtUser, "i", $targetId);
-            mysqli_stmt_execute($stmtUser);
-            $userRes = mysqli_stmt_get_result($stmtUser);
-            $providerData = mysqli_fetch_assoc($userRes);
-            mysqli_stmt_close($stmtUser);
+            $updateQ = "UPDATE provider SET provider_status = ? WHERE provider_id = ?";
+            $stmt = mysqli_prepare($conn, $updateQ);
+            mysqli_stmt_bind_param($stmt, "si", $newStatus, $targetId);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
 
-            if ($providerData) {
-                $affectedUserId = (int)$providerData['user_id'];
-                $notes = "Provider registration {$logAction} for " . $providerData['provider_name'];
-
-                // 2. Update provider table status
-                $updateProviderQ = "UPDATE provider SET provider_status = ? WHERE provider_id = ?";
-                $stmt = mysqli_prepare($conn, $updateProviderQ);
-                mysqli_stmt_bind_param($stmt, "si", $providerStatus, $targetId);
-                mysqli_stmt_execute($stmt);
-                mysqli_stmt_close($stmt);
-
-                // 3. Update user table account_status
-                $updateUserQ = "UPDATE user SET account_status = ? WHERE user_id = ?";
-                $stmtAcc = mysqli_prepare($conn, $updateUserQ);
-                mysqli_stmt_bind_param($stmtAcc, "si", $accountStatus, $affectedUserId);
-                mysqli_stmt_execute($stmtAcc);
-                mysqli_stmt_close($stmtAcc);
-
-                // 4. Log to user_audit_log
-                $logQ = "INSERT INTO user_audit_log (admin_id, affected_user_id, action_type, notes) VALUES (?, ?, ?, ?)";
-                $stmtLog = mysqli_prepare($conn, $logQ);
-                mysqli_stmt_bind_param($stmtLog, "iiss", $adminId, $affectedUserId, $logAction, $notes);
-                mysqli_stmt_execute($stmtLog);
-                mysqli_stmt_close($stmtLog);
-            }
+            $logQ = "INSERT INTO provider_audit_log (admin_id, provider_id, action_type, reason) VALUES (?, ?, ?, 'Processed via List Moderation')";
+            $stmtLog = mysqli_prepare($conn, $logQ);
+            mysqli_stmt_bind_param($stmtLog, "iis", $adminId, $targetId, $logAction);
+            mysqli_stmt_execute($stmtLog);
+            mysqli_stmt_close($stmtLog);
         }
         
         // Redirect to prevent form resubmission on refresh, maintaining the current view

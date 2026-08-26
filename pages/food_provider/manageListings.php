@@ -13,6 +13,9 @@ if (!$providerId) {
     die("No provider profile is linked to this account yet. Please contact support.");
 }
 
+
+// Gate: block all provider functionality until an admin approves the account
+requireApprovedProvider($conn, $providerId);
 $allTags = getAllFoodTags($conn);
 $errors = [];
 $successMsg = '';

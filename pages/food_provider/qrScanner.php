@@ -13,6 +13,9 @@ if (!$providerId) {
     die("No provider profile is linked to this account yet. Please contact support.");
 }
 
+
+// Gate: block all provider functionality until an admin approves the account
+requireApprovedProvider($conn, $providerId);
 // Per-browser-session scan counters (reset when the session ends)
 if (!isset($_SESSION['scan_stats'])) {
     $_SESSION['scan_stats'] = ['scans' => 0, 'manual' => 0];

@@ -13,6 +13,9 @@ if (!$providerId) {
     die("No provider profile is linked to this account yet. Please contact support.");
 }
 
+
+// Gate: block all provider functionality until an admin approves the account
+requireApprovedProvider($conn, $providerId);
 $success_msg = '';
 $error_msg = '';
 
@@ -83,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($use_security_question) {
                     if (empty($security_ans)) {
                         $error_msg = "Please provide your security answer.";
-                    } elseif (password_verify($security_ans, $user['security_answer'])) {
+                    } elseif (password_verify(strtolower($security_ans), $user['security_answer'])) {
                         $is_authorized = true;
                     } else {
                         $error_msg = "Incorrect security answer.";
@@ -229,18 +232,18 @@ if (!$provider) {
                                 <div class="alert-setting">
                                     <label class="alert-setting-item">
                                         Notify me when a student claims a food item
-                                        <input type="hidden" name="notify_on_claim" value="<?= $provider['notify_on_claim'] ? 1 : 0 ?>" class="notify-hidden">
-                                        <img src="../../assets/images/<?= $provider['notify_on_claim'] ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_on_claim">
+                                        <input type="hidden" name="notify_on_claim" value="<?= ($provider['notify_on_claim'] ?? 1) ? 1 : 0 ?>" class="notify-hidden">
+                                        <img src="../../assets/images/<?= ($provider['notify_on_claim'] ?? 1) ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_on_claim">
                                     </label>
                                     <label class="alert-setting-item">
                                         Alert me 15 minutes before an active listing expires
-                                        <input type="hidden" name="notify_expiry_alert" value="<?= $provider['notify_expiry_alert'] ? 1 : 0 ?>" class="notify-hidden">
-                                        <img src="../../assets/images/<?= $provider['notify_expiry_alert'] ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_expiry_alert">
+                                        <input type="hidden" name="notify_expiry_alert" value="<?= ($provider['notify_expiry_alert'] ?? 1) ? 1 : 0 ?>" class="notify-hidden">
+                                        <img src="../../assets/images/<?= ($provider['notify_expiry_alert'] ?? 1) ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_expiry_alert">
                                     </label>
                                     <label class="alert-setting-item">
                                         Weekly food rescue impact summary digest
-                                        <input type="hidden" name="notify_weekly_digest" value="<?= $provider['notify_weekly_digest'] ? 1 : 0 ?>" class="notify-hidden">
-                                        <img src="../../assets/images/<?= $provider['notify_weekly_digest'] ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_weekly_digest">
+                                        <input type="hidden" name="notify_weekly_digest" value="<?= ($provider['notify_weekly_digest'] ?? 0) ? 1 : 0 ?>" class="notify-hidden">
+                                        <img src="../../assets/images/<?= ($provider['notify_weekly_digest'] ?? 0) ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_weekly_digest">
                                     </label>
                                 </div>
                             </div>

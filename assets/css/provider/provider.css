@@ -303,3 +303,30 @@
     }
     .checkbox-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ===================== Topbar/sidebar height alignment ===================== */
+/* The shared shell has a pre-existing mismatch: .sidebar-header is 90px
+   tall (sidebar.css) but .topbar is only 64px tall (topbar.css), so the
+   line under the sidebar logo doesn't line up with the topbar's bottom
+   edge. This is a shared-file bug (also visible on admin's pages), but
+   fixed here scoped to provider pages only rather than editing the
+   shared topbar.css/dashboard.css directly. content-container's margin
+   must grow to match, or content hides under the taller topbar (desktop
+   only — the existing mobile override below still wins at <=768px). */
+@media (min-width: 769px) {
+    .topbar { height: 90px !important; }
+    .content-container { margin-top: 90px !important; }
+}
+
+/* ===================== Intermediate-width layout fix ===================== */
+/* Between the 768px mobile breakpoint and full desktop width, the shared
+   .charts-section two-column split (dashboard.css) combined with this
+   page's own two-column field groups was compounding to squeeze inputs
+   down to just a couple of visible characters. Stacking the outer
+   columns earlier on provider pages specifically gives the inner fields
+   room to breathe (the .profile-info-item min-width fix above handles
+   the inner squeeze as a second layer of defense). */
+@media (max-width: 1100px) {
+    .charts-section { flex-direction: column !important; }
+    .side-column { width: 100% !important; margin: 0 !important; }
+}

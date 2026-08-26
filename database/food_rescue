@@ -1,0 +1,599 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Aug 25, 2026 at 04:48 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `food_rescue`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `claim`
+--
+
+CREATE TABLE `claim` (
+  `claim_id` int(11) NOT NULL,
+  `listing_id` int(11) NOT NULL,
+  `student_id` int(11) NOT NULL,
+  `portion_claimed` int(11) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `reservation_expires_at` datetime NOT NULL,
+  `confirmed_at` datetime DEFAULT NULL,
+  `status` enum('pending','confirmed','completed','expired','cancelled') NOT NULL DEFAULT 'pending'
+) ;
+
+--
+-- Dumping data for table `claim`
+--
+
+INSERT INTO `claim` (`claim_id`, `listing_id`, `student_id`, `portion_claimed`, `created_at`, `reservation_expires_at`, `confirmed_at`, `status`) VALUES
+(1, 1, 5, 2, '2026-08-19 10:00:00', '2026-08-19 11:00:00', '2026-08-19 10:30:00', 'completed'),
+(2, 2, 6, 2, '2026-08-19 11:00:00', '2026-08-19 12:00:00', '2026-08-19 11:20:00', 'completed'),
+(3, 3, 7, 3, '2026-08-20 09:30:00', '2026-08-20 10:30:00', '2026-08-20 10:05:00', 'completed'),
+(4, 4, 8, 2, '2026-08-20 12:00:00', '2026-08-20 13:00:00', '2026-08-20 12:40:00', 'completed'),
+(5, 5, 5, 4, '2026-08-21 10:15:00', '2026-08-21 11:15:00', '2026-08-21 10:50:00', 'completed'),
+(6, 6, 6, 3, '2026-08-21 13:00:00', '2026-08-21 14:00:00', '2026-08-21 13:35:00', 'completed'),
+(7, 7, 7, 4, '2026-08-22 11:00:00', '2026-08-22 12:00:00', '2026-08-22 11:45:00', 'completed'),
+(8, 8, 8, 3, '2026-08-23 09:30:00', '2026-08-23 10:30:00', '2026-08-23 10:10:00', 'completed'),
+(9, 9, 5, 5, '2026-08-23 11:15:00', '2026-08-23 12:15:00', '2026-08-23 11:50:00', 'completed'),
+(10, 10, 6, 2, '2026-08-24 10:20:00', '2026-08-24 11:20:00', '2026-08-24 10:55:00', 'completed'),
+(11, 11, 7, 3, '2026-08-24 16:15:00', '2026-08-24 17:15:00', '2026-08-24 16:45:00', 'completed'),
+(12, 12, 8, 2, '2026-08-25 10:00:00', '2026-08-25 11:00:00', '2026-08-25 10:30:00', 'completed'),
+(13, 13, 5, 2, '2026-08-25 12:30:00', '2026-08-25 13:30:00', NULL, 'pending'),
+(14, 5, 6, 1, '2026-08-21 09:30:00', '2026-08-21 10:30:00', NULL, 'expired'),
+(15, 8, 7, 1, '2026-08-23 09:00:00', '2026-08-23 10:00:00', NULL, 'expired');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `claim_tokens`
+--
+
+CREATE TABLE `claim_tokens` (
+  `token_id` int(11) NOT NULL,
+  `claim_id` int(11) NOT NULL,
+  `token_string` varchar(64) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `expires_at` datetime NOT NULL,
+  `used_at` datetime DEFAULT NULL
+) ;
+
+--
+-- Dumping data for table `claim_tokens`
+--
+
+INSERT INTO `claim_tokens` (`token_id`, `claim_id`, `token_string`, `created_at`, `expires_at`, `used_at`) VALUES
+(1, 1, 'TK-20260819-001-A8F9', '2026-08-19 10:00:00', '2026-08-19 11:00:00', '2026-08-19 10:30:00'),
+(2, 2, 'TK-20260819-002-B7E3', '2026-08-19 11:00:00', '2026-08-19 12:00:00', '2026-08-19 11:20:00'),
+(3, 3, 'TK-20260820-003-C4D2', '2026-08-20 09:30:00', '2026-08-20 10:30:00', '2026-08-20 10:05:00'),
+(4, 4, 'TK-20260820-004-D1F5', '2026-08-20 12:00:00', '2026-08-20 13:00:00', '2026-08-20 12:40:00'),
+(5, 5, 'TK-20260821-005-E9A6', '2026-08-21 10:15:00', '2026-08-21 11:15:00', '2026-08-21 10:50:00'),
+(6, 6, 'TK-20260821-006-F2B8', '2026-08-21 13:00:00', '2026-08-21 14:00:00', '2026-08-21 13:35:00'),
+(7, 7, 'TK-20260822-007-G5C1', '2026-08-22 11:00:00', '2026-08-22 12:00:00', '2026-08-22 11:45:00'),
+(8, 8, 'TK-20260823-008-H3D4', '2026-08-23 09:30:00', '2026-08-23 10:30:00', '2026-08-23 10:10:00'),
+(9, 9, 'TK-20260823-009-J7E9', '2026-08-23 11:15:00', '2026-08-23 12:15:00', '2026-08-23 11:50:00'),
+(10, 10, 'TK-20260824-010-K2F8', '2026-08-24 10:20:00', '2026-08-24 11:20:00', '2026-08-24 10:55:00'),
+(11, 11, 'TK-20260824-011-L6A3', '2026-08-24 16:15:00', '2026-08-24 17:15:00', '2026-08-24 16:45:00'),
+(12, 12, 'TK-20260825-012-M8B4', '2026-08-25 10:00:00', '2026-08-25 11:00:00', '2026-08-25 10:30:00'),
+(13, 13, 'TK-20260825-013-N1C7', '2026-08-25 12:30:00', '2026-08-25 13:30:00', NULL),
+(14, 14, 'TK-20260821-014-P3D9', '2026-08-21 09:30:00', '2026-08-21 10:30:00', NULL),
+(15, 15, 'TK-20260823-015-Q8E2', '2026-08-23 09:00:00', '2026-08-23 10:00:00', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `food_listing`
+--
+
+CREATE TABLE `food_listing` (
+  `listing_id` int(11) NOT NULL,
+  `provider_id` int(11) NOT NULL,
+  `food_name` varchar(200) NOT NULL,
+  `description` varchar(500) DEFAULT NULL,
+  `total_quantity` int(11) NOT NULL,
+  `remain_quantity` int(11) NOT NULL,
+  `weight_kg` decimal(6,2) DEFAULT NULL,
+  `pickup_location` varchar(200) NOT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `status` enum('pending','active','expired','removed') NOT NULL DEFAULT 'pending',
+  `expires_at` datetime NOT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ;
+
+--
+-- Dumping data for table `food_listing`
+--
+
+INSERT INTO `food_listing` (`listing_id`, `provider_id`, `food_name`, `description`, `total_quantity`, `remain_quantity`, `weight_kg`, `pickup_location`, `image`, `status`, `expires_at`, `approved_by`, `approved_at`, `created_at`) VALUES
+(1, 1, 'Chicken Rice Bento', NULL, 10, 8, 3.50, 'Block B Level 1 St.1', NULL, 'expired', '2026-08-19 14:00:00', 1, '2026-08-19 09:15:00', '2026-08-19 09:00:00'),
+(2, 2, 'Egg Tart Set', NULL, 8, 6, 1.60, 'Block D Level 2 Bakery', NULL, 'expired', '2026-08-19 15:00:00', 1, '2026-08-19 10:45:00', '2026-08-19 10:30:00'),
+(3, 1, 'Vegetarian Fried Rice', NULL, 12, 9, 3.60, 'Block B Level 1 St.1', NULL, 'expired', '2026-08-20 13:30:00', 1, '2026-08-20 08:45:00', '2026-08-20 08:30:00'),
+(4, 3, 'Wonton Noodle Soup', NULL, 6, 4, 2.10, 'Block B Level 1 St.3', NULL, 'expired', '2026-08-20 16:00:00', 1, '2026-08-20 11:15:00', '2026-08-20 11:00:00'),
+(5, 2, 'Croissant Bag', NULL, 15, 11, 2.25, 'Block D Level 2 Bakery', NULL, 'expired', '2026-08-21 14:00:00', 1, '2026-08-21 09:20:00', '2026-08-21 09:00:00'),
+(6, 1, 'Curry Chicken Pack', NULL, 10, 7, 4.00, 'Block B Level 1 St.1', NULL, 'expired', '2026-08-21 16:30:00', 1, '2026-08-21 11:40:00', '2026-08-21 11:30:00'),
+(7, 3, 'Fried Kuey Teow', NULL, 8, 4, 2.80, 'Block B Level 1 St.3', NULL, 'expired', '2026-08-22 15:00:00', 1, '2026-08-22 10:15:00', '2026-08-22 10:00:00'),
+(8, 2, 'Whole Wheat Sandwich', NULL, 14, 11, 2.80, 'Block D Level 2 Bakery', NULL, 'expired', '2026-08-23 13:00:00', 1, '2026-08-23 09:00:00', '2026-08-23 08:45:00'),
+(9, 1, 'Nasi Lemak Special', NULL, 12, 7, 4.20, 'Block B Level 1 St.1', NULL, 'expired', '2026-08-23 15:30:00', 1, '2026-08-23 10:45:00', '2026-08-23 10:30:00'),
+(10, 3, 'Pan Mee Dry', NULL, 9, 7, 3.15, 'Block B Level 1 St.3', NULL, 'expired', '2026-08-24 14:30:00', 1, '2026-08-24 09:50:00', '2026-08-24 09:30:00'),
+(11, 2, 'Danish Pastry Set', NULL, 10, 7, 1.80, 'Block D Level 2 Bakery', NULL, 'expired', '2026-08-24 17:00:00', 1, '2026-08-24 12:15:00', '2026-08-24 12:00:00'),
+(12, 1, 'Mixed Rice Meal Box', NULL, 15, 13, 5.25, 'Block B Level 1 St.1', NULL, 'active', '2026-08-25 18:00:00', 1, '2026-08-25 09:10:00', '2026-08-25 09:00:00'),
+(13, 3, 'Beef Ball Noodle', NULL, 7, 5, 2.45, 'Block B Level 1 St.3', NULL, 'active', '2026-08-25 19:00:00', 1, '2026-08-25 11:30:00', '2026-08-25 11:15:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `food_listing_tags`
+--
+
+CREATE TABLE `food_listing_tags` (
+  `food_listing_tags_id` int(11) NOT NULL,
+  `listing_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `food_listing_tags`
+--
+
+INSERT INTO `food_listing_tags` (`food_listing_tags_id`, `listing_id`, `tag_id`) VALUES
+(1, 1, 1),
+(2, 1, 4),
+(3, 2, 3),
+(4, 3, 1),
+(5, 3, 2),
+(6, 4, 1),
+(7, 4, 5),
+(8, 5, 3),
+(9, 6, 1),
+(10, 7, 1),
+(11, 7, 5),
+(12, 8, 3),
+(13, 9, 1),
+(14, 10, 5),
+(15, 11, 3),
+(16, 12, 1),
+(17, 12, 4),
+(18, 13, 1),
+(19, 13, 5);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `food_tags`
+--
+
+CREATE TABLE `food_tags` (
+  `tag_id` int(11) NOT NULL,
+  `tag_name` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `food_tags`
+--
+
+INSERT INTO `food_tags` (`tag_id`, `tag_name`) VALUES
+(3, 'Bakery'),
+(4, 'Bento Pack'),
+(1, 'Halal'),
+(5, 'Noodle'),
+(2, 'Vegetarian');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `impact_record`
+--
+
+CREATE TABLE `impact_record` (
+  `impact_id` int(11) NOT NULL,
+  `claim_id` int(11) NOT NULL,
+  `co2_saved_kg` decimal(8,3) NOT NULL DEFAULT 0.000,
+  `water_saved_litre` decimal(8,2) NOT NULL DEFAULT 0.00,
+  `recorded_at` datetime NOT NULL DEFAULT current_timestamp()
+) ;
+
+--
+-- Dumping data for table `impact_record`
+--
+
+INSERT INTO `impact_record` (`impact_id`, `claim_id`, `co2_saved_kg`, `water_saved_litre`, `recorded_at`) VALUES
+(1, 1, 3.800, 950.00, '2026-08-19 10:30:00'),
+(2, 2, 2.500, 500.00, '2026-08-19 11:20:00'),
+(3, 3, 5.200, 1300.00, '2026-08-20 10:05:00'),
+(4, 4, 3.500, 800.00, '2026-08-20 12:40:00'),
+(5, 5, 4.800, 1100.00, '2026-08-21 10:50:00'),
+(6, 6, 6.400, 1600.00, '2026-08-21 13:35:00'),
+(7, 7, 7.000, 1750.00, '2026-08-22 11:45:00'),
+(8, 8, 4.500, 1050.00, '2026-08-23 10:10:00'),
+(9, 9, 9.000, 2200.00, '2026-08-23 11:50:00'),
+(10, 10, 3.600, 850.00, '2026-08-24 10:55:00'),
+(11, 11, 4.500, 1100.00, '2026-08-24 16:45:00'),
+(12, 12, 4.200, 1000.00, '2026-08-25 10:30:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `listing_audit_log`
+--
+
+CREATE TABLE `listing_audit_log` (
+  `log_id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `listing_id` int(11) NOT NULL,
+  `action_type` enum('approve_listing','reject_listing','remove_listing') NOT NULL,
+  `notes` varchar(500) DEFAULT NULL,
+  `performed_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `listing_audit_log`
+--
+
+INSERT INTO `listing_audit_log` (`log_id`, `admin_id`, `listing_id`, `action_type`, `notes`, `performed_at`) VALUES
+(1, 1, 1, 'approve_listing', 'Listing verified and approved', '2026-08-19 09:15:00'),
+(2, 1, 2, 'approve_listing', 'Listing verified and approved', '2026-08-19 10:45:00'),
+(3, 1, 3, 'approve_listing', 'Listing verified and approved', '2026-08-20 08:45:00'),
+(4, 1, 4, 'approve_listing', 'Listing verified and approved', '2026-08-20 11:15:00'),
+(5, 1, 5, 'approve_listing', 'Listing verified and approved', '2026-08-21 09:20:00'),
+(6, 1, 6, 'approve_listing', 'Listing verified and approved', '2026-08-21 11:40:00'),
+(7, 1, 7, 'approve_listing', 'Listing verified and approved', '2026-08-22 10:15:00'),
+(8, 1, 8, 'approve_listing', 'Listing verified and approved', '2026-08-23 09:00:00'),
+(9, 1, 9, 'approve_listing', 'Listing verified and approved', '2026-08-23 10:45:00'),
+(10, 1, 10, 'approve_listing', 'Listing verified and approved', '2026-08-24 09:50:00'),
+(11, 1, 11, 'approve_listing', 'Listing verified and approved', '2026-08-24 12:15:00'),
+(12, 1, 12, 'approve_listing', 'Listing verified and approved', '2026-08-25 09:10:00'),
+(13, 1, 13, 'approve_listing', 'Listing verified and approved', '2026-08-25 11:30:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `penalty_log`
+--
+
+CREATE TABLE `penalty_log` (
+  `penalty_id` int(11) NOT NULL,
+  `claim_id` int(11) NOT NULL,
+  `student_id` int(11) NOT NULL,
+  `reason` varchar(255) NOT NULL,
+  `issued_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `throttle_days` int(11) NOT NULL DEFAULT 1
+) ;
+
+--
+-- Dumping data for table `penalty_log`
+--
+
+INSERT INTO `penalty_log` (`penalty_id`, `claim_id`, `student_id`, `reason`, `issued_at`, `throttle_days`) VALUES
+(1, 14, 6, 'Claim reservation expired without pickup (No-show)', '2026-08-21 10:31:00', 1),
+(2, 15, 7, 'Claim reservation expired without pickup (No-show)', '2026-08-23 10:01:00', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `provider`
+--
+
+CREATE TABLE `provider` (
+  `provider_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `provider_name` varchar(100) NOT NULL,
+  `contact_number` varchar(20) NOT NULL,
+  `location` varchar(200) NOT NULL,
+  `operating_hours` varchar(100) DEFAULT NULL,
+  `request_note` varchar(300) DEFAULT NULL,
+  `provider_status` enum('pending_approval','active','suspended') NOT NULL DEFAULT 'pending_approval'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `provider`
+--
+
+INSERT INTO `provider` (`provider_id`, `user_id`, `provider_name`, `contact_number`, `location`, `operating_hours`, `request_note`, `provider_status`) VALUES
+(1, 2, 'APU Main Cafeteria St. 1', '0123456789', 'Block B Level 1', NULL, NULL, 'active'),
+(2, 3, 'APU Fresh Bakery', '0129876543', 'Block D Level 2', NULL, NULL, 'active'),
+(3, 4, 'Asian Noodle Stall', '0112233445', 'Block B Level 1', NULL, NULL, 'active');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user`
+--
+
+CREATE TABLE `user` (
+  `user_id` int(11) NOT NULL,
+  `user_name` varchar(30) NOT NULL,
+  `email` varchar(40) NOT NULL,
+  `role` enum('student','provider','admin') NOT NULL DEFAULT 'student',
+  `pass_hash` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `account_status` enum('active','banned','throttled') NOT NULL DEFAULT 'active',
+  `throttled_until` datetime DEFAULT NULL,
+  `no_show_count` int(11) NOT NULL DEFAULT 0,
+  `security_question` varchar(200) DEFAULT NULL,
+  `security_answer` varchar(255) DEFAULT NULL
+) ;
+
+--
+-- Dumping data for table `user`
+--
+
+INSERT INTO `user` (`user_id`, `user_name`, `email`, `role`, `pass_hash`, `created_at`, `account_status`, `throttled_until`, `no_show_count`, `security_question`, `security_answer`) VALUES
+(1, 'Admin System', 'admin@apu.edu.my', 'admin', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-01 08:00:00', 'active', NULL, 0, 'What is your favourite food?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS'),
+(2, 'Cafeteria A', 'vendor_a@apu.edu.my', 'provider', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-10 09:00:00', 'active', NULL, 0, 'What is your favourite food?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS'),
+(3, 'Bakery Corner', 'vendor_b@apu.edu.my', 'provider', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-10 10:00:00', 'active', NULL, 0, 'What was your first pet\'s name?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS'),
+(4, 'Noodle Express', 'vendor_c@apu.edu.my', 'provider', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-12 11:00:00', 'active', NULL, 0, 'What was your first pet\'s name?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS'),
+(5, 'Student Alex', 'tp000001@mail.apu.edu.my', 'student', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-15 12:00:00', 'active', NULL, 0, 'What city were you born in?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS'),
+(6, 'Student Bella', 'tp000002@mail.apu.edu.my', 'student', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-16 14:00:00', 'active', NULL, 1, 'What city were you born in?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS'),
+(7, 'Student Chris', 'tp000003@mail.apu.edu.my', 'student', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-17 15:00:00', 'active', NULL, 1, 'What is your mother\'s maiden name?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS'),
+(8, 'Student David', 'tp000004@mail.apu.edu.my', 'student', '$2y$10$UBzD8Nv2z0ppeeK8UPfCPeMbMABrFyIC6sRgSjz3XgBwjpup9tUaS', '2026-08-18 16:00:00', 'active', NULL, 0, 'What is your mother\'s maiden name?', '$2y$10$6s/EC6wwnxneXofQeTAwrOI3qb1ZdDkIJwwtlBlXX1JRVnBA9GMTS');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_audit_log`
+--
+
+CREATE TABLE `user_audit_log` (
+  `log_id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `affected_user_id` int(11) NOT NULL,
+  `action_type` enum('ban_user','unban_user','warn_user','throttle_user','assign_role','approve_provider','reject_provider') NOT NULL,
+  `notes` varchar(500) DEFAULT NULL,
+  `performed_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_audit_log`
+--
+
+INSERT INTO `user_audit_log` (`log_id`, `admin_id`, `affected_user_id`, `action_type`, `notes`, `performed_at`) VALUES
+(1, 1, 2, 'approve_provider', 'Provider registration approved for APU Main Cafeteria St. 1', '2026-08-10 09:30:00'),
+(2, 1, 3, 'approve_provider', 'Provider registration approved for APU Fresh Bakery', '2026-08-10 10:15:00'),
+(3, 1, 4, 'approve_provider', 'Provider registration approved for Asian Noodle Stall', '2026-08-12 11:20:00'),
+(4, 1, 6, 'warn_user', 'Issued warning for missing reservation pickup window', '2026-08-21 15:00:00'),
+(5, 1, 7, 'throttle_user', 'Account throttled for 24 hours due to repeated no-shows', '2026-08-23 16:00:00');
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `claim`
+--
+ALTER TABLE `claim`
+  ADD PRIMARY KEY (`claim_id`),
+  ADD UNIQUE KEY `uq_student_listing` (`student_id`,`listing_id`),
+  ADD KEY `fk_claim_listing` (`listing_id`);
+
+--
+-- Indexes for table `claim_tokens`
+--
+ALTER TABLE `claim_tokens`
+  ADD PRIMARY KEY (`token_id`),
+  ADD UNIQUE KEY `uq_token_claim` (`claim_id`),
+  ADD UNIQUE KEY `uq_token_string` (`token_string`);
+
+--
+-- Indexes for table `food_listing`
+--
+ALTER TABLE `food_listing`
+  ADD PRIMARY KEY (`listing_id`),
+  ADD KEY `fk_listing_provider` (`provider_id`),
+  ADD KEY `fk_listing_approved_by` (`approved_by`);
+
+--
+-- Indexes for table `food_listing_tags`
+--
+ALTER TABLE `food_listing_tags`
+  ADD PRIMARY KEY (`food_listing_tags_id`),
+  ADD UNIQUE KEY `uq_listing_tag` (`listing_id`,`tag_id`),
+  ADD KEY `fk_flt_tag` (`tag_id`);
+
+--
+-- Indexes for table `food_tags`
+--
+ALTER TABLE `food_tags`
+  ADD PRIMARY KEY (`tag_id`),
+  ADD UNIQUE KEY `uq_tag_name` (`tag_name`);
+
+--
+-- Indexes for table `impact_record`
+--
+ALTER TABLE `impact_record`
+  ADD PRIMARY KEY (`impact_id`),
+  ADD UNIQUE KEY `uq_impact_claim` (`claim_id`);
+
+--
+-- Indexes for table `listing_audit_log`
+--
+ALTER TABLE `listing_audit_log`
+  ADD PRIMARY KEY (`log_id`),
+  ADD KEY `fk_listing_log_admin` (`admin_id`),
+  ADD KEY `fk_listing_log_listing` (`listing_id`);
+
+--
+-- Indexes for table `penalty_log`
+--
+ALTER TABLE `penalty_log`
+  ADD PRIMARY KEY (`penalty_id`),
+  ADD UNIQUE KEY `uq_penalty_claim` (`claim_id`),
+  ADD KEY `fk_penalty_student` (`student_id`);
+
+--
+-- Indexes for table `provider`
+--
+ALTER TABLE `provider`
+  ADD PRIMARY KEY (`provider_id`),
+  ADD UNIQUE KEY `uq_provider_user` (`user_id`);
+
+--
+-- Indexes for table `user`
+--
+ALTER TABLE `user`
+  ADD PRIMARY KEY (`user_id`),
+  ADD UNIQUE KEY `uq_user_email` (`email`);
+
+--
+-- Indexes for table `user_audit_log`
+--
+ALTER TABLE `user_audit_log`
+  ADD PRIMARY KEY (`log_id`),
+  ADD KEY `fk_user_log_admin` (`admin_id`),
+  ADD KEY `fk_user_log_affected` (`affected_user_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `claim`
+--
+ALTER TABLE `claim`
+  MODIFY `claim_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `claim_tokens`
+--
+ALTER TABLE `claim_tokens`
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `food_listing`
+--
+ALTER TABLE `food_listing`
+  MODIFY `listing_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `food_listing_tags`
+--
+ALTER TABLE `food_listing_tags`
+  MODIFY `food_listing_tags_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT for table `food_tags`
+--
+ALTER TABLE `food_tags`
+  MODIFY `tag_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `impact_record`
+--
+ALTER TABLE `impact_record`
+  MODIFY `impact_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `listing_audit_log`
+--
+ALTER TABLE `listing_audit_log`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT for table `penalty_log`
+--
+ALTER TABLE `penalty_log`
+  MODIFY `penalty_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `provider`
+--
+ALTER TABLE `provider`
+  MODIFY `provider_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `user`
+--
+ALTER TABLE `user`
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user_audit_log`
+--
+ALTER TABLE `user_audit_log`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `claim`
+--
+ALTER TABLE `claim`
+  ADD CONSTRAINT `fk_claim_listing` FOREIGN KEY (`listing_id`) REFERENCES `food_listing` (`listing_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_claim_student` FOREIGN KEY (`student_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `claim_tokens`
+--
+ALTER TABLE `claim_tokens`
+  ADD CONSTRAINT `fk_token_claim` FOREIGN KEY (`claim_id`) REFERENCES `claim` (`claim_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `food_listing`
+--
+ALTER TABLE `food_listing`
+  ADD CONSTRAINT `fk_listing_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `user` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_listing_provider` FOREIGN KEY (`provider_id`) REFERENCES `provider` (`provider_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `food_listing_tags`
+--
+ALTER TABLE `food_listing_tags`
+  ADD CONSTRAINT `fk_flt_listing` FOREIGN KEY (`listing_id`) REFERENCES `food_listing` (`listing_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_flt_tag` FOREIGN KEY (`tag_id`) REFERENCES `food_tags` (`tag_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `impact_record`
+--
+ALTER TABLE `impact_record`
+  ADD CONSTRAINT `fk_impact_claim` FOREIGN KEY (`claim_id`) REFERENCES `claim` (`claim_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `listing_audit_log`
+--
+ALTER TABLE `listing_audit_log`
+  ADD CONSTRAINT `fk_listing_log_admin` FOREIGN KEY (`admin_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_listing_log_listing` FOREIGN KEY (`listing_id`) REFERENCES `food_listing` (`listing_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `penalty_log`
+--
+ALTER TABLE `penalty_log`
+  ADD CONSTRAINT `fk_penalty_claim` FOREIGN KEY (`claim_id`) REFERENCES `claim` (`claim_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_penalty_student` FOREIGN KEY (`student_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `provider`
+--
+ALTER TABLE `provider`
+  ADD CONSTRAINT `fk_provider_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `user_audit_log`
+--
+ALTER TABLE `user_audit_log`
+  ADD CONSTRAINT `fk_user_log_admin` FOREIGN KEY (`admin_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_user_log_affected` FOREIGN KEY (`affected_user_id`) REFERENCES `user` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

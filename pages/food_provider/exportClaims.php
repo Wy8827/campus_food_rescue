@@ -13,6 +13,9 @@ if (!$providerId) {
     die("No provider profile is linked to this account yet.");
 }
 
+
+// Gate: block all provider functionality until an admin approves the account
+requireApprovedProvider($conn, $providerId);
 // Same filters as claimTracker.php, no pagination — export everything matching
 $filters = [
     'status'     => $_GET['status'] ?? '',
