@@ -1,3 +1,9 @@
+<?php
+require_once __DIR__ . '/../../config/constants.php';
+require_once __DIR__ . '/../../config/session.php';
+require_once __DIR__ . '/../../config/db.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
