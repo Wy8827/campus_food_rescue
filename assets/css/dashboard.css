@@ -205,3 +205,456 @@
         display: none;
     }
 }
+
+/* =========================================================
+   ADMIN DASHBOARD ISOLATED DESIGN SYSTEM
+   ========================================================= */
+
+#admin-dashboard {
+    padding: 32px 40px;
+    margin-top: 60px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 1. Typography & Page Titles */
+#admin-dashboard .dashboard-header {
+    margin-bottom: 24px;
+}
+
+#admin-dashboard .page-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    color: #0F172A;
+    margin: 0 0 6px 0;
+}
+
+#admin-dashboard .page-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #64748B;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* 2. KPI Metric Cards */
+#admin-dashboard .summary-card-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    width: 100%;
+    margin-bottom: 28px;
+}
+
+#admin-dashboard .summary-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 110px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+#admin-dashboard .summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    border-color: #CBD5E1;
+}
+
+#admin-dashboard .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#admin-dashboard .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #64748B;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+#admin-dashboard .card-icon-wrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+#admin-dashboard .icon-amber { background-color: #FEF3C7; color: #D97706; }
+#admin-dashboard .icon-blue { background-color: #DBEAFE; color: #2563EB; }
+#admin-dashboard .icon-emerald { background-color: #DCFCE7; color: #16A34A; }
+#admin-dashboard .icon-purple { background-color: #F3E8FF; color: #9333EA; }
+
+#admin-dashboard .card-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0F172A;
+    letter-spacing: -0.03em;
+    margin-top: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+#admin-dashboard .card-value .unit {
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748B;
+}
+
+/* 3. Main Section Layout Grid */
+#admin-dashboard .charts-section {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    width: 100%;
+    align-items: start;
+}
+
+#admin-dashboard .charts-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+#admin-dashboard .chart-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#admin-dashboard .card-section-header {
+    margin-bottom: 20px;
+}
+
+#admin-dashboard .chart-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 4px 0;
+}
+
+#admin-dashboard .chart-subtitle {
+    font-size: 13px;
+    color: #64748B;
+}
+
+#admin-dashboard .chart-canvas-wrapper {
+    position: relative;
+    height: 280px;
+    width: 100%;
+}
+
+/* 4. Donut Charts Side-by-side Layout */
+#admin-dashboard .pie-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 8px;
+}
+
+#admin-dashboard .pie-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+#admin-dashboard .pie-subheading {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin: 0 0 12px 0;
+    text-align: center;
+}
+
+#admin-dashboard .pie-canvas-box {
+    position: relative;
+    height: 220px;
+    width: 100%;
+}
+
+/* 5. Side Column: Quick Actions & Activity Feed */
+#admin-dashboard .side-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
+#admin-dashboard .side-panel-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    box-sizing: border-box;
+}
+
+#admin-dashboard .side-panel-header {
+    margin-bottom: 16px;
+}
+
+#admin-dashboard .side-panel-header.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#admin-dashboard .panel-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+#admin-dashboard .badge-dot-live {
+    font-size: 11px;
+    font-weight: 600;
+    color: #16A34A;
+    background-color: #DCFCE7;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#admin-dashboard .badge-dot-live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background-color: #16A34A;
+    border-radius: 50%;
+}
+
+/* Quick Action Tiles */
+#admin-dashboard .quick-links-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+#admin-dashboard .quick-link-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    text-decoration: none;
+    background-color: #FAFAFA;
+    transition: all 0.2s ease;
+    gap: 10px;
+    box-sizing: border-box;
+}
+
+#admin-dashboard .quick-link-tile:hover {
+    background-color: #FFFFFF;
+    border-color: #CBD5E1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+#admin-dashboard .tile-icon-bg {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+#admin-dashboard .bg-emerald { background-color: #DCFCE7; color: #166534; }
+#admin-dashboard .bg-blue    { background-color: #DBEAFE; color: #1D4ED8; }
+#admin-dashboard .bg-amber   { background-color: #FEF3C7; color: #B45309; }
+#admin-dashboard .bg-purple  { background-color: #F3E8FF; color: #7E22CE; }
+
+#admin-dashboard .tile-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    text-align: center;
+}
+
+/* 6. Activity Feed Stylings */
+#admin-dashboard .activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#admin-dashboard .activity-feed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+#admin-dashboard .activity-feed-item:hover {
+    background-color: #F1F5F9;
+    border-color: #CBD5E1;
+}
+
+#admin-dashboard .activity-avatar-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: #334155;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+#admin-dashboard .activity-body {
+    flex: 1;
+    min-width: 0;
+}
+
+#admin-dashboard .activity-header-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+#admin-dashboard .activity-user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+#admin-dashboard .activity-timestamp {
+    font-size: 11px;
+    color: #94A3B8;
+}
+
+#admin-dashboard .activity-tag-row {
+    margin-bottom: 6px;
+}
+
+#admin-dashboard .activity-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* Action Tag Colors */
+#admin-dashboard .tag-approve_provider, 
+#admin-dashboard .tag-approve_listing { background-color: #DCFCE7; color: #166534; }
+#admin-dashboard .tag-reject_provider, 
+#admin-dashboard .tag-reject_listing { background-color: #FEE2E2; color: #991B1B; }
+#admin-dashboard .tag-ban_user, 
+#admin-dashboard .tag-remove_listing { background-color: #FEE2E2; color: #B91C1C; }
+#admin-dashboard .tag-throttle_user, 
+#admin-dashboard .tag-warn_user { background-color: #FEF3C7; color: #92400E; }
+
+#admin-dashboard .activity-meta-text {
+    font-size: 12px;
+    color: #475569;
+}
+
+#admin-dashboard .activity-target {
+    font-weight: 600;
+    color: #1E293B;
+}
+
+#admin-dashboard .activity-note-quote {
+    font-size: 12px;
+    color: #64748B;
+    margin-top: 4px;
+    font-style: italic;
+    background-color: rgba(255, 255, 255, 0.6);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border-left: 2px solid #CBD5E1;
+}
+
+#admin-dashboard .view-all-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #275300;
+    text-decoration: none;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+#admin-dashboard .view-all-link:hover {
+    background-color: #F0FDF4;
+    text-decoration: underline;
+}
+
+#admin-dashboard .empty-state-text {
+    text-align: center;
+    color: #94A3B8;
+    font-size: 13px;
+    padding: 20px 0;
+}
+
+/* 7. Responsive Breakpoints */
+@media (max-width: 1200px) {
+    #admin-dashboard .summary-card-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #admin-dashboard .charts-section {
+        grid-template-columns: 1fr;
+    }
+
+    #admin-dashboard .side-column {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    #admin-dashboard {
+        padding: 20px 16px;
+    }
+
+    #admin-dashboard .summary-card-container {
+        grid-template-columns: 1fr;
+    }
+
+    #admin-dashboard .pie-container {
+        grid-template-columns: 1fr;
+    }
+}

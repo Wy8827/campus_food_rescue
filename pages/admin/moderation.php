@@ -224,8 +224,14 @@ if ($currentView === 'food') {
                                     $expiresText = "Expired";
                                 } elseif ($timeDiff < 3600) {
                                     $expiresText = "Expires in " . floor($timeDiff / 60) . "m";
+                                } elseif ($timeDiff < 86400) {
+                                    $hours = floor($timeDiff / 3600);
+                                    $mins = floor(($timeDiff % 3600) / 60);
+                                    $expiresText = "Expires in " . $hours . "h" . ($mins > 0 ? " " . $mins . "m" : "");
                                 } else {
-                                    $expiresText = "Expires in " . floor($timeDiff / 3600) . "h";
+                                    $days = floor($timeDiff / 86400);
+                                    $hours = floor(($timeDiff % 86400) / 3600);
+                                    $expiresText = "Expires in " . $days . "d" . ($hours > 0 ? " " . $hours . "h" : "");
                                 }
                                 $imagePath = $item['image'] ? UPLOAD_URL . htmlspecialchars($item['image']) : '../../assets/images/placeholder.jpg';
                             ?>
