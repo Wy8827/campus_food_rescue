@@ -30,7 +30,7 @@
   <a href="<?= BASE_URL ?>/index.php#impact">Impact</a>
   <a href="<?= BASE_URL ?>/index.php#about">About</a>
   <a href="<?= BASE_URL ?>/index.php#faq">FAQ</a>
-  <a href="<?= BASE_URL ?>/includes/support.php">Support</a>
+  <a href="<?= BASE_URL ?>/pages/auth/support.php">Support</a>
 
   <a href="<?= BASE_URL ?>/pages/auth/login.php">Login</a>
   <a href="<?= BASE_URL ?>/pages/auth/register.php">Sign Up</a>

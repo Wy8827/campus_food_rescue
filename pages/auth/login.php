@@ -98,6 +98,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['pass_hash'])) {
           if ($user['account_status'] === 'banned') {
             $error_msg = 'Your account has been banned. Please contact support.';
+          } elseif ($user['account_status'] === 'throttled') {
+            // Compare throttled_until against MySQL's own NOW(), not PHP's
+            // date()/time() — the value was written with MySQL's
+            // DATE_ADD(NOW(), INTERVAL 3 DAY) in claimTracker.php, so it
+            // has to be checked against that same clock or the two can
+            // silently disagree (PHP/MySQL timezone drift).
+            $throttleCheck = mysqli_prepare($conn, "SELECT (throttled_until IS NOT NULL AND throttled_until > NOW()) AS still_throttled, throttled_until FROM `user` WHERE user_id = ?");
+            mysqli_stmt_bind_param($throttleCheck, "i", $user['user_id']);
+            mysqli_stmt_execute($throttleCheck);
+            $throttleRow = mysqli_fetch_assoc(mysqli_stmt_get_result($throttleCheck));
+            mysqli_stmt_close($throttleCheck);
+
+            if ($throttleRow && (int)$throttleRow['still_throttled'] === 1) {
+              // Still within the throttle window — block the login.
+              $untilText = date('M j, Y g:i A', strtotime($throttleRow['throttled_until']));
+              $error_msg = "Your account is temporarily throttled due to repeated no-shows. You can log in again after $untilText.";
+            } else {
+              // Throttle period has elapsed — clear it and let the login
+              // proceed normally below.
+              $clear = mysqli_prepare($conn, "UPDATE `user` SET account_status = 'active', throttled_until = NULL WHERE user_id = ?");
+              mysqli_stmt_bind_param($clear, "i", $user['user_id']);
+              mysqli_stmt_execute($clear);
+              mysqli_stmt_close($clear);
+
+              session_regenerate_id(true);
+              $_SESSION['user_id']   = $user['user_id'];
+              $_SESSION['user_name'] = $user['user_name'];
+              $_SESSION['role']      = $user['role'];
+              $_SESSION['email']     = $user['email'];
+
+              if ($user['role'] === 'admin') {
+                header("Location: " . BASE_URL . "/pages/admin/dashboard.php");
+              } elseif ($user['role'] === 'provider') {
+                header("Location: " . BASE_URL . "/pages/food_provider/dashboard.php");
+              } else {
+                header("Location: " . BASE_URL . "/pages/student/dashboard.php");
+              }
+              exit();
+            }
           } else {
             // Mitigate session fixation by regenerating session token[cite: 1]
             session_regenerate_id(true);

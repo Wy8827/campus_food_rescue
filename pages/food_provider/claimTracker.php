@@ -26,20 +26,25 @@ $flagErr = '';
 
 // =========================================================
 // Handle "Flag" action — records a no-show against the student's
-// account (user.no_show_count). Repeated no-shows auto-throttle the
-// student's account, mirroring the anti-abuse fields already built
-// into the `user` table.
+// account (user.no_show_count) AND logs it in penalty_log so the same
+// claim can never be flagged twice. penalty_log already has a UNIQUE
+// KEY on claim_id (uq_penalty_claim) — that's what makes one-flag-
+// per-claim authoritative at the DB level, not just a UI convenience.
+// Repeated no-shows auto-throttle the student's account, mirroring
+// the anti-abuse fields already built into the `user` table.
 // =========================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['flag_claim'])) {
     $claimId = (int)($_POST['claim_id'] ?? 0);
 
     // Ownership + eligibility check in one query: must belong to this
-    // provider's listing AND actually be an expired (no-show) claim.
+    // provider's listing, actually be an expired (no-show) claim, AND
+    // not already have a penalty_log entry (i.e. not already flagged).
     $stmt = mysqli_prepare($conn, "
         SELECT c.claim_id, c.student_id
         FROM claim c
         JOIN food_listing f ON c.listing_id = f.listing_id
         WHERE c.claim_id = ? AND f.provider_id = ? AND c.status = 'expired'
+          AND NOT EXISTS (SELECT 1 FROM penalty_log pl WHERE pl.claim_id = c.claim_id)
     ");
     mysqli_stmt_bind_param($stmt, "ii", $claimId, $providerId);
     mysqli_stmt_execute($stmt);
@@ -47,35 +52,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['flag_claim'])) {
     mysqli_stmt_close($stmt);
 
     if (!$claim) {
-        $flagErr = "That claim can't be flagged (not found, not yours, or not expired).";
+        $flagErr = "That claim can't be flagged (not found, not yours, already flagged, or not expired).";
     } else {
         $studentId = (int)$claim['student_id'];
-        $stmt = mysqli_prepare($conn, "UPDATE user SET no_show_count = no_show_count + 1 WHERE user_id = ?");
-        mysqli_stmt_bind_param($stmt, "i", $studentId);
-        mysqli_stmt_execute($stmt);
+
+        // Log the penalty first — uq_penalty_claim is the real guard
+        // against double-flagging (also catches a race where two flag
+        // requests for the same claim land at the same time).
+        $stmt = mysqli_prepare($conn, "INSERT INTO penalty_log (claim_id, student_id, reason, issued_at, throttle_days) VALUES (?, ?, 'No-show: claim expired without pickup', NOW(), 3)");
+        mysqli_stmt_bind_param($stmt, "ii", $claimId, $studentId);
+        $logged = mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
 
-        // Auto-throttle after repeated no-shows
-        $stmt = mysqli_prepare($conn, "SELECT no_show_count FROM user WHERE user_id = ?");
-        mysqli_stmt_bind_param($stmt, "i", $studentId);
-        mysqli_stmt_execute($stmt);
-        $newCount = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['no_show_count'];
-        mysqli_stmt_close($stmt);
-
-        if ($newCount >= 3) {
-            // Computed by MySQL itself (DATE_ADD(NOW(), ...)), not PHP's
-            // date()/strtotime() — same reasoning as the expires_at fix in
-            // createListing.php: PHP's timezone can silently disagree with
-            // MySQL's, and throttled_until is later compared against
-            // MySQL's own NOW() elsewhere (e.g. at login), so both sides
-            // of that comparison need to come from the same clock.
-            $stmt = mysqli_prepare($conn, "UPDATE user SET account_status = 'throttled', throttled_until = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE user_id = ?");
+        if (!$logged) {
+            $flagErr = "That claim was already flagged.";
+        } else {
+            $stmt = mysqli_prepare($conn, "UPDATE user SET no_show_count = no_show_count + 1 WHERE user_id = ?");
             mysqli_stmt_bind_param($stmt, "i", $studentId);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
-            $flagMsg = "No-show recorded. This student has now reached $newCount no-shows and has been temporarily throttled.";
-        } else {
-            $flagMsg = "No-show recorded ($newCount total for this student).";
+
+            // Auto-throttle after repeated no-shows
+            $stmt = mysqli_prepare($conn, "SELECT no_show_count FROM user WHERE user_id = ?");
+            mysqli_stmt_bind_param($stmt, "i", $studentId);
+            mysqli_stmt_execute($stmt);
+            $newCount = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['no_show_count'];
+            mysqli_stmt_close($stmt);
+
+            if ($newCount >= 3) {
+                // Computed by MySQL itself (DATE_ADD(NOW(), ...)), not PHP's
+                // date()/strtotime() — same reasoning as the expires_at fix in
+                // createListing.php: PHP's timezone can silently disagree with
+                // MySQL's, and throttled_until is later compared against
+                // MySQL's own NOW() at login, so both sides of that
+                // comparison need to come from the same clock.
+                // Throttle period: 3 days.
+                $stmt = mysqli_prepare($conn, "UPDATE user SET account_status = 'throttled', throttled_until = DATE_ADD(NOW(), INTERVAL 3 DAY) WHERE user_id = ?");
+                mysqli_stmt_bind_param($stmt, "i", $studentId);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+                $flagMsg = "No-show recorded. This student has now reached $newCount no-shows and has been throttled for 3 days.";
+            } else {
+                $flagMsg = "No-show recorded ($newCount total for this student).";
+            }
         }
     }
 }
@@ -116,7 +135,8 @@ $sql = "
     SELECT c.claim_id, c.portion_claimed, c.created_at, c.reservation_expires_at,
            c.confirmed_at, c.status, c.student_id,
            u.user_name, u.email,
-           f.listing_id, f.food_name, f.pickup_location
+           f.listing_id, f.food_name, f.pickup_location,
+           (SELECT COUNT(*) FROM penalty_log pl WHERE pl.claim_id = c.claim_id) AS flagged
     FROM claim c
     JOIN food_listing f ON c.listing_id = f.listing_id
     JOIN user u ON c.student_id = u.user_id
@@ -355,11 +375,13 @@ function filterUrl(array $filters, array $overrides): string {
                                                         data-claimed="<?= date('M j, Y g:i A', strtotime($cl['created_at'])) ?>"
                                                         data-status="<?= ucfirst($cl['status']) ?>"
                                                         data-qr="<?= htmlspecialchars($qr['label']) ?>">View</button>
-                                                    <?php if ($cl['status'] === 'expired'): ?>
+                                                    <?php if ($cl['status'] === 'expired' && (int)$cl['flagged'] === 0): ?>
                                                         <form method="POST" onsubmit="return confirm('Flag this as a no-show? This adds to the student\'s no-show count and may throttle their account.');">
                                                             <input type="hidden" name="claim_id" value="<?= $cl['claim_id'] ?>">
                                                             <button type="submit" name="flag_claim" value="1" class="ct-ab ct-a-flag"><ion-icon name="flag-outline"></ion-icon> Flag</button>
                                                         </form>
+                                                    <?php elseif ($cl['status'] === 'expired' && (int)$cl['flagged'] > 0): ?>
+                                                        <span class="ct-flagged-note" style="color:#a1a1aa; font-size:12px;"><ion-icon name="flag"></ion-icon> Flagged</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>

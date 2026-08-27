@@ -80,7 +80,7 @@
                 </a>
             </li>
             <li class="footer-nav-container <?= ($current_page == 'support.php') ? 'active' : ''; ?>">
-                <a href="support.php">
+                <a href="<?= BASE_URL ?>/pages/auth/support.php">
                     <img src="../../assets/images/support.png" alt="Support Logo" width="18" class="nav-icon">
                     <span class="nav-text">Support</span>
                 </a>
