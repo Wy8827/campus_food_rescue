@@ -126,7 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              FROM claim
              WHERE listing_id = ?
              AND student_id = ?
-             AND status IN ('pending', 'confirmed')
              LIMIT 1"
         );
 
