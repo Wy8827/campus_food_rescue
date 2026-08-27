@@ -10,12 +10,14 @@ requireRole('admin');
 // 1. HANDLE EDIT USER FORM SUBMISSION (POST)
 // ----------------------------------------------------  
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit_user') {
-    $editUserId = trim($_POST['user_id'] ?? '');
-    $editName   = trim($_POST['user_name'] ?? '');
-    $editEmail  = trim($_POST['email'] ?? '');
-    $editRole   = $_POST['role'] ?? 'student';
-    $editStatus = $_POST['account_status'] ?? 'active';
-    $editNoShow = (int)($_POST['no_show_count'] ?? 0);
+    $editUserId   = trim($_POST['user_id'] ?? '');
+    $editName     = trim($_POST['user_name'] ?? '');
+    $editEmail    = trim($_POST['email'] ?? '');
+    $editRole     = $_POST['role'] ?? 'student';
+    $editStatus   = $_POST['account_status'] ?? 'active';
+    $editNoShow   = (int)($_POST['no_show_count'] ?? 0);
+    $editQuestion = trim($_POST['security_question'] ?? '');
+    $editAnswer   = trim($_POST['security_answer'] ?? '');
 
     // Reconstruct current query params for seamless redirection
     $redirectParams = [
@@ -27,8 +29,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $redirectQuery = http_build_query(array_filter($redirectParams, fn($v) => $v !== '' && $v !== 'all'));
 
     if (!empty($editUserId) && !empty($editName) && !empty($editEmail)) {
-        $updateStmt = mysqli_prepare($conn, "UPDATE `user` SET user_name = ?, email = ?, role = ?, account_status = ?, no_show_count = ? WHERE user_id = ?");
-        mysqli_stmt_bind_param($updateStmt, "ssssis", $editName, $editEmail, $editRole, $editStatus, $editNoShow, $editUserId);
+        // Check if admin is resetting security credentials (both question and answer provided)
+        if (!empty($editQuestion) && !empty($editAnswer)) {
+            $answerHash = password_hash(strtolower($editAnswer), PASSWORD_DEFAULT);
+            $updateStmt = mysqli_prepare(
+                $conn, 
+                "UPDATE `user` SET user_name = ?, email = ?, role = ?, account_status = ?, no_show_count = ?, security_question = ?, security_answer = ? WHERE user_id = ?"
+            );
+            mysqli_stmt_bind_param($updateStmt, "ssssissi", $editName, $editEmail, $editRole, $editStatus, $editNoShow, $editQuestion, $answerHash, $editUserId);
+        } elseif (!empty($editQuestion)) {
+            // Update question only if answer was left unchanged
+            $updateStmt = mysqli_prepare(
+                $conn, 
+                "UPDATE `user` SET user_name = ?, email = ?, role = ?, account_status = ?, no_show_count = ?, security_question = ? WHERE user_id = ?"
+            );
+            mysqli_stmt_bind_param($updateStmt, "ssssisi", $editName, $editEmail, $editRole, $editStatus, $editNoShow, $editQuestion, $editUserId);
+        } else {
+            // Standard user profile update without altering security credentials
+            $updateStmt = mysqli_prepare(
+                $conn, 
+                "UPDATE `user` SET user_name = ?, email = ?, role = ?, account_status = ?, no_show_count = ? WHERE user_id = ?"
+            );
+            mysqli_stmt_bind_param($updateStmt, "ssssii", $editName, $editEmail, $editRole, $editStatus, $editNoShow, $editUserId);
+        }
+
         mysqli_stmt_execute($updateStmt);
         mysqli_stmt_close($updateStmt);
 
@@ -42,8 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // 2. CAPTURE SEARCH & FILTER INPUTS  
 // ----------------------------------------------------  
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';  
-$roleFilter = isset($_GET['role']) ? $_GET['role'] : 'all';  
-$statusFilter = isset($_GET['status']) ? $_GET['status'] : 'all';  
+$roleFilter = $_GET['role'] ?? 'all';  
+$statusFilter = $_GET['status'] ?? 'all';  
 
 // Dynamic SQL query conditions  
 $conditions = [];  
@@ -102,7 +126,7 @@ $offset = ($page - 1) * $limit;
 // ----------------------------------------------------  
 // 4. FETCH FILTERED DATA WITH ROLE-BASED SEQUENCING  
 // ----------------------------------------------------  
-$query = "SELECT user_id, user_name, email, role, account_status, no_show_count,                  
+$query = "SELECT user_id, user_name, email, role, account_status, no_show_count, security_question,                 
                  ROW_NUMBER() OVER (PARTITION BY role ORDER BY user_id ASC) AS role_seq           
           FROM `user` " . $whereClause . "            
           ORDER BY user_id ASC LIMIT ? OFFSET ?"; 
@@ -129,6 +153,14 @@ $urlParams = [
     'status' => $statusFilter  
 ];
 $queryString = http_build_query($urlParams);  
+
+// Standard security questions list
+$securityQuestionsList = [
+    'What is your favourite food?',
+    "What was your first pet's name?",
+    'What city were you born in?',
+    "What is your mother's maiden name?"
+];
 ?>
 <!DOCTYPE html> 
 <html lang="en"> 
@@ -170,7 +202,10 @@ $queryString = http_build_query($urlParams);
         .custom-modal-card {
             background: #FFFFFF;
             width: 100%;
-            max-width: 480px;
+            max-width: 500px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
             border-radius: 12px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
             overflow: hidden;
@@ -188,6 +223,7 @@ $queryString = http_build_query($urlParams);
             align-items: center;
             padding: 18px 24px;
             border-bottom: 1px solid #E5E7EB;
+            flex-shrink: 0;
         }
         .modal-card-title {
             font-size: 16px;
@@ -210,6 +246,7 @@ $queryString = http_build_query($urlParams);
         /* Modal Body */
         .modal-card-body {
             padding: 24px;
+            overflow-y: auto;
         }
 
         /* Modal Footer */
@@ -220,9 +257,10 @@ $queryString = http_build_query($urlParams);
             padding: 16px 24px;
             background-color: #FAFAFA;
             border-top: 1px solid #E5E7EB;
+            flex-shrink: 0;
         }
 
-        /* View Details Specifics */
+        /* View Details Profile Hero */
         .detail-profile-hero {
             display: flex;
             align-items: center;
@@ -266,6 +304,7 @@ $queryString = http_build_query($urlParams);
             font-size: 14px;
             font-weight: 600;
             color: #111827;
+            word-break: break-word;
         }
 
         /* Edit Form Controls */
@@ -305,6 +344,33 @@ $queryString = http_build_query($urlParams);
             background-color: #F3F4F6;
             color: #6B7280;
             cursor: not-allowed;
+        }
+
+        /* Security Reset Section inside Modal */
+        .form-section-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 22px 0 16px 0;
+        }
+        .form-section-divider span {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #275300;
+            white-space: nowrap;
+        }
+        .form-section-divider hr {
+            flex: 1;
+            border: none;
+            border-top: 1px solid #E5E7EB;
+            margin: 0;
+        }
+        .form-hint {
+            font-size: 11px;
+            color: #6B7280;
+            margin-top: 4px;
         }
 
         /* Modal Action Buttons */
@@ -348,7 +414,7 @@ $queryString = http_build_query($urlParams);
                 <?php include '../../includes/topbar.php'; ?>             
             </div>             
             <div class="content-container">                 
-                <!-- Header Section -->
+                <!-- Header Section -->                
                 <div class="user-page-header">                     
                     <div class="user-page-header-left">                         
                         <h1 class="page-title">User Management</h1>                         
@@ -358,7 +424,7 @@ $queryString = http_build_query($urlParams);
                         <button type="button" class="export-button">
                             <ion-icon name="download-outline"></ion-icon>
                             <span>Export List</span>
-                        </button>                         
+                        </button>                           
                         <button type="button" class="add-user-button">
                             <ion-icon name="person-add-outline"></ion-icon>
                             <span>Manual Add</span>
@@ -384,13 +450,13 @@ $queryString = http_build_query($urlParams);
                         <option value="active" <?= $statusFilter === 'active' ? 'selected' : '' ?>>Active</option>                         
                         <option value="throttled" <?= $statusFilter === 'throttled' ? 'selected' : '' ?>>Throttled</option>                         
                         <option value="banned" <?= $statusFilter === 'banned' ? 'selected' : '' ?>>Banned</option>                     
-                    </select>                                          
+                    </select>                                           
                 </form>                 
 
                 <!-- User Table Container -->
                 <div class="table-card">                     
                     <table class="user-list-table">                         
-                        <thead>                             
+                        <thead>                              
                             <tr>                                 
                                 <th style="width: 28%;">USER PROFILE</th>                                 
                                 <th style="width: 14%;">ROLE</th>                                 
@@ -402,30 +468,30 @@ $queryString = http_build_query($urlParams);
                         </thead>                         
                         <tbody>                             
                             <?php if(!empty($users)): ?>                                 
-                                <?php foreach($users as $user):                                      
+                                <?php foreach($users as $user):                                       
                                     $statusLower = strtolower($user['account_status']);                                     
-                                    $roleLower = strtolower($user['role']);                                                                          
+                                    $roleLower = strtolower($user['role']);                                                                                          
                                     
                                     // Generate initials for avatar                                     
                                     $words = explode(" ", trim($user['user_name']));                                     
-                                    $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($words[1], 0, 1) : ''));                                                                          
+                                    $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($words[1], 0, 1) : ''));                                                                                          
                                     
                                     // Credit score calculation based on no-show count                                    
                                     $noShow = isset($user['no_show_count']) ? (int)$user['no_show_count'] : 0;                                     
-                                    $creditScore = max(0, 100 - ($noShow * 14));                                      
+                                    $creditScore = max(0, 100 - ($noShow * 14));                                       
                                     $scoreColor = 'green';                                     
                                     if ($creditScore < 50) $scoreColor = 'red';                                     
-                                    elseif ($creditScore < 80) $scoreColor = 'orange';                                                                          
+                                    elseif ($creditScore < 80) $scoreColor = 'orange';                                                                                          
                                     
                                     // Role icon and badge configuration                                     
                                     $roleConfig = [                                         
                                         'admin' => ['icon' => 'shield', 'prefix' => 'A', 'class' => 'role-badge-admin', 'label' => 'Admin'],                                         
                                         'provider' => ['icon' => 'restaurant', 'prefix' => 'P', 'class' => 'role-badge-provider', 'label' => 'Provider'],                                         
                                         'student' => ['icon' => 'school', 'prefix' => 'S', 'class' => 'role-badge-student', 'label' => 'Student'],                                     
-                                    ];                                     
+                                    ];                                       
                                     $currentRole = $roleConfig[$roleLower] ?? ['icon' => 'person', 'prefix' => 'U', 'class' => 'role-badge-admin', 'label' => ucfirst($user['role'])];
                                     $displayId = $currentRole['prefix'] . $user['role_seq'];                                 
-                                ?>                                     
+                                ?>                                       
                                     <tr>                                         
                                         <td>                                             
                                             <div class="user-profile-cell">                                                 
@@ -444,7 +510,7 @@ $queryString = http_build_query($urlParams);
                                         </td>                                         
                                         <td>
                                             <span class="noshow-value"><?= $noShow ?></span>
-                                        </td>                                         
+                                        </td>                                                 
                                         <td>                                             
                                             <div class="credit-score-widget">                                                 
                                                 <div class="progress-track">                                                     
@@ -470,9 +536,10 @@ $queryString = http_build_query($urlParams);
                                                     data-role="<?= htmlspecialchars($user['role']) ?>"
                                                     data-status="<?= htmlspecialchars($user['account_status']) ?>"
                                                     data-noshow="<?= htmlspecialchars($noShow) ?>"
+                                                    data-question="<?= htmlspecialchars($user['security_question'] ?? '') ?>"
                                                     onclick="openEditModal(this)">
                                                     Edit User
-                                                </button>                                                 
+                                                </button>                                                  
 
                                                 <!-- Trigger View Details Modal -->
                                                 <button type="button" class="btn-view-details"
@@ -487,6 +554,7 @@ $queryString = http_build_query($urlParams);
                                                     data-score-color="<?= htmlspecialchars($scoreColor) ?>"
                                                     data-initials="<?= htmlspecialchars($initials) ?>"
                                                     data-role-label="<?= htmlspecialchars($currentRole['label']) ?>"
+                                                    data-question="<?= htmlspecialchars($user['security_question'] ?? 'Not set') ?>"
                                                     onclick="openDetailModal(this)">
                                                     View Details
                                                 </button>                                             
@@ -495,7 +563,7 @@ $queryString = http_build_query($urlParams);
                                     </tr>                                 
                                 <?php endforeach; ?>                             
                             <?php else: ?>                                 
-                                <tr>                                     
+                                <tr>                                       
                                     <td colspan="6" class="table-empty-cell">No users found matching your search criteria.</td>                                 
                                 </tr>                             
                             <?php endif; ?>                         
@@ -560,6 +628,10 @@ $queryString = http_build_query($urlParams);
                     <div class="detail-item">
                         <span class="detail-label">No-Show Count</span>
                         <span id="detailNoShow" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item full-width">
+                        <span class="detail-label">Security Question</span>
+                        <span id="detailQuestion" class="detail-value" style="color: #275300;"></span>
                     </div>
                     <div class="detail-item full-width">
                         <span class="detail-label">Credit Score</span>
@@ -631,6 +703,28 @@ $queryString = http_build_query($urlParams);
                         <label class="modal-form-label" for="editNoShow">No-Show Count</label>
                         <input type="number" name="no_show_count" id="editNoShow" class="modal-form-input" min="0" required>
                     </div>
+
+                    <!-- Reset Security Credentials Section -->
+                    <div class="form-section-divider">
+                        <span>Security Credentials Reset</span>
+                        <hr>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label class="modal-form-label" for="editSecurityQuestion">Security Question</label>
+                        <select name="security_question" id="editSecurityQuestion" class="modal-form-input">
+                            <option value="">-- Keep or Select Security Question --</option>
+                            <?php foreach ($securityQuestionsList as $question): ?>
+                                <option value="<?= htmlspecialchars($question) ?>"><?= htmlspecialchars($question) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label class="modal-form-label" for="editSecurityAnswer">New Security Answer</label>
+                        <input type="text" name="security_answer" id="editSecurityAnswer" class="modal-form-input" placeholder="Enter new answer (leave blank to keep unchanged)">
+                        <div class="form-hint">Only type here if the user requested a security answer reset.</div>
+                    </div>
                 </div>
 
                 <div class="modal-card-footer">
@@ -655,6 +749,7 @@ $queryString = http_build_query($urlParams);
         document.getElementById('detailRole').innerText = data.roleLabel;
         document.getElementById('detailStatus').innerText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
         document.getElementById('detailNoShow').innerText = data.noshow;
+        document.getElementById('detailQuestion').innerText = data.question || 'No security question set';
 
         // Avatar configuration
         const avatar = document.getElementById('detailAvatar');
@@ -684,6 +779,10 @@ $queryString = http_build_query($urlParams);
         document.getElementById('editRole').value = data.role.toLowerCase();
         document.getElementById('editStatus').value = data.status.toLowerCase();
         document.getElementById('editNoShow').value = data.noshow;
+
+        // Set security question dropdown to current user selection and clear answer field
+        document.getElementById('editSecurityQuestion').value = data.question || '';
+        document.getElementById('editSecurityAnswer').value = '';
 
         document.getElementById('editModal').classList.add('show');
     }

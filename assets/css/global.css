@@ -33,3 +33,13 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+/* Enable smooth scrolling across the page */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Prevent fixed/sticky navbar from overlapping section headers */
+section {
+    scroll-margin-top: 80px; /* Adjust according to your navbar height */
+}
