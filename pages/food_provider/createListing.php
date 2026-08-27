@@ -104,20 +104,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---------------- Insert ----------------
     if (empty($errors)) {
-        // expires_at = created_at + chosen duration. Both created_at (via
-        // the column's DEFAULT CURRENT_TIMESTAMP) and this value are set
-        // in the same INSERT, so they land at the same instant.
-        $expiresFormatted = date('Y-m-d H:i:s', strtotime('+' . (int)$duration_minutes . ' minutes'));
+        // IMPORTANT: expires_at is computed by MySQL itself
+        // (DATE_ADD(NOW(), ...)) in the same INSERT that sets created_at
+        // (via DEFAULT CURRENT_TIMESTAMP) — both come from MySQL's own
+        // clock. We deliberately do NOT compute this in PHP with
+        // date()/strtotime(), because PHP's timezone (php.ini's
+        // date.timezone, often defaulting to UTC) can silently disagree
+        // with MySQL's system timezone, producing an expires_at that's
+        // hours off from created_at even though the logic "looks" right.
         $weightParam = (float)$weight_kg;
+        $durationInt = (int)$duration_minutes;
 
         $query = "INSERT INTO food_listing
                     (provider_id, food_name, description, total_quantity, remain_quantity, weight_kg, pickup_location, image, status, expires_at)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)";
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', DATE_ADD(NOW(), INTERVAL ? MINUTE))";
         $stmt = mysqli_prepare($conn, $query);
         $qtyInt = (int)$quantity;
         mysqli_stmt_bind_param(
-            $stmt, "issiidsss",
-            $providerId, $food_name, $description, $qtyInt, $qtyInt, $weightParam, $pickup_location, $imageFileName, $expiresFormatted
+            $stmt, "issiidssi",
+            $providerId, $food_name, $description, $qtyInt, $qtyInt, $weightParam, $pickup_location, $imageFileName, $durationInt
         );
 
         if (mysqli_stmt_execute($stmt)) {

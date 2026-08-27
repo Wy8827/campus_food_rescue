@@ -63,9 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['flag_claim'])) {
         mysqli_stmt_close($stmt);
 
         if ($newCount >= 3) {
-            $throttledUntil = date('Y-m-d H:i:s', strtotime('+7 days'));
-            $stmt = mysqli_prepare($conn, "UPDATE user SET account_status = 'throttled', throttled_until = ? WHERE user_id = ?");
-            mysqli_stmt_bind_param($stmt, "si", $throttledUntil, $studentId);
+            // Computed by MySQL itself (DATE_ADD(NOW(), ...)), not PHP's
+            // date()/strtotime() — same reasoning as the expires_at fix in
+            // createListing.php: PHP's timezone can silently disagree with
+            // MySQL's, and throttled_until is later compared against
+            // MySQL's own NOW() elsewhere (e.g. at login), so both sides
+            // of that comparison need to come from the same clock.
+            $stmt = mysqli_prepare($conn, "UPDATE user SET account_status = 'throttled', throttled_until = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE user_id = ?");
+            mysqli_stmt_bind_param($stmt, "i", $studentId);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
             $flagMsg = "No-show recorded. This student has now reached $newCount no-shows and has been temporarily throttled.";

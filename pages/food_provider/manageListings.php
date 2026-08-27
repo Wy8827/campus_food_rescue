@@ -99,6 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // created_at, not "now" — picking "2 hours" always means
             // "2 hours from when it was first created", consistently,
             // whether you're creating it or editing it later.
+            //
+            // NOTE: unlike createListing.php's insert, this is safe to
+            // compute in PHP — we're adding minutes to an already-known
+            // literal string ($owned['created_at'], fetched from MySQL),
+            // never asking PHP what time "now" is. There's no live clock
+            // being consulted here, so there's nothing for PHP's and
+            // MySQL's timezone settings to disagree about.
             $expiresFormatted = date(
                 'Y-m-d H:i:s',
                 strtotime($owned['created_at'] . ' +' . (int)$duration_minutes . ' minutes')
