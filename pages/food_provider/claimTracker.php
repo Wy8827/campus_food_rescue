@@ -16,6 +16,11 @@ if (!$providerId) {
 
 // Gate: block all provider functionality until an admin approves the account
 requireApprovedProvider($conn, $providerId);
+
+// Keep both status columns truthful before anything below reads them.
+syncExpiredListings($conn);
+syncExpiredClaims($conn);
+
 $flagMsg = '';
 $flagErr = '';
 
@@ -77,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['flag_claim'])) {
 $filters = [
     'status'     => $_GET['status'] ?? '',
     'listing_id' => $_GET['listing_id'] ?? '',
-    'qr'         => $_GET['qr'] ?? '',
     'q'          => trim($_GET['q'] ?? ''),
 ];
 $page = max(1, (int)($_GET['page'] ?? 1));
@@ -271,7 +275,6 @@ function filterUrl(array $filters, array $overrides): string {
                         <form method="GET" class="ct-filter-group" id="listingFilterForm">
                             <span class="ct-filter-label">Listing</span>
                             <input type="hidden" name="status" value="<?= htmlspecialchars($filters['status']) ?>">
-                            <input type="hidden" name="qr" value="<?= htmlspecialchars($filters['qr']) ?>">
                             <input type="hidden" name="q" value="<?= htmlspecialchars($filters['q']) ?>">
                             <select name="listing_id" class="ct-filter-select" onchange="this.form.submit()">
                                 <option value="">All listings</option>
@@ -282,19 +285,6 @@ function filterUrl(array $filters, array $overrides): string {
                                 <?php endforeach; ?>
                             </select>
                         </form>
-
-                        <div class="ct-filter-group">
-                            <span class="ct-filter-label">QR status</span>
-                            <a class="ct-filter-option <?= $filters['qr'] === 'scanned' ? 'on' : '' ?>" href="<?= filterUrl($filters, ['qr' => $filters['qr'] === 'scanned' ? '' : 'scanned', 'page' => '']) ?>">
-                                <span class="ct-fdot" style="background:#3b711a"></span>Scanned
-                            </a>
-                            <a class="ct-filter-option <?= $filters['qr'] === 'awaiting' ? 'on' : '' ?>" href="<?= filterUrl($filters, ['qr' => $filters['qr'] === 'awaiting' ? '' : 'awaiting', 'page' => '']) ?>">
-                                <span class="ct-fdot" style="background:#b45309"></span>Awaiting
-                            </a>
-                            <a class="ct-filter-option <?= $filters['qr'] === 'expired' ? 'on' : '' ?>" href="<?= filterUrl($filters, ['qr' => $filters['qr'] === 'expired' ? '' : 'expired', 'page' => '']) ?>">
-                                <span class="ct-fdot" style="background:#dc2626"></span>Expired
-                            </a>
-                        </div>
                     </div>
 
                     <!-- Table -->
@@ -303,7 +293,6 @@ function filterUrl(array $filters, array $overrides): string {
                             <form method="GET" class="ct-search">
                                 <input type="hidden" name="status" value="<?= htmlspecialchars($filters['status']) ?>">
                                 <input type="hidden" name="listing_id" value="<?= htmlspecialchars($filters['listing_id']) ?>">
-                                <input type="hidden" name="qr" value="<?= htmlspecialchars($filters['qr']) ?>">
                                 <ion-icon name="search-outline"></ion-icon>
                                 <input type="text" name="q" placeholder="Search student name or email…" value="<?= htmlspecialchars($filters['q']) ?>">
                             </form>
@@ -423,6 +412,16 @@ function filterUrl(array $filters, array $overrides): string {
         });
         document.getElementById('closeModal').addEventListener('click', () => modal.classList.remove('open'));
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+
+        // Auto-refresh so hold countdowns / newly-expired claims stay live
+        // without the provider needing to manually reload. Skipped while
+        // the detail modal is open so an in-progress "View" isn't yanked
+        // away mid-read.
+        setTimeout(() => {
+            if (!modal.classList.contains('open')) {
+                location.reload();
+            }
+        }, 30000);
     </script>
 </body>
 </html>

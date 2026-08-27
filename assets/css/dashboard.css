@@ -162,6 +162,24 @@
     min-width: 250px;
 }
 
+/* The two-column charts-section (main card + fixed 400px side-column)
+   genuinely needs ~1140px+ of width to fit without cramming — the mobile
+   breakpoint below only stacks at 768px, leaving a gap (roughly
+   768px–1140px, a very common "minimized browser window" range) where
+   nothing shrinks far enough AND nothing stacks either, so content
+   overflows its card. This earlier breakpoint stacks things sooner,
+   before that gap is reached.
+*/
+@media (max-width: 1140px) {
+    .charts-section {
+        flex-direction: column;
+    }
+
+    .side-column {
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .summary-card-container {
         grid-template-columns: 1fr 1fr; /* Two cards per row on smaller screens */

@@ -16,9 +16,36 @@ if (!$providerId) {
 
 // Gate: block all provider functionality until an admin approves the account
 requireApprovedProvider($conn, $providerId);
+
+// Keep the status column truthful before we read anything below —
+// nothing else in the app was flipping expired listings automatically.
+syncExpiredListings($conn);
+
 $allTags = getAllFoodTags($conn);
 $errors = [];
 $successMsg = '';
+
+// Pickup location is locked to the provider's own profile everywhere —
+// listings never store/edit their own copy of it from this page.
+$stmt = mysqli_prepare($conn, "SELECT location FROM provider WHERE provider_id = ?");
+mysqli_stmt_bind_param($stmt, "i", $providerId);
+mysqli_stmt_execute($stmt);
+$providerRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_close($stmt);
+$providerLocation = $providerRow['location'] ?? '';
+
+// Same fixed "good for X" windows as Create Listing — expires_at is
+// always recomputed as this listing's created_at + the chosen duration.
+$durationOptions = [
+    30   => '30 minutes',
+    60   => '1 hour',
+    120  => '2 hours',
+    180  => '3 hours',
+    240  => '4 hours',
+    360  => '6 hours',
+    720  => '12 hours',
+    1440 => '24 hours',
+];
 
 /** Fetch a single listing, but ONLY if it belongs to this provider. */
 function fetchOwnedListing(mysqli $conn, int $listingId, int $providerId): ?array {
@@ -49,8 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $food_name       = trim($_POST['food_name'] ?? '');
         $description     = trim($_POST['description'] ?? '');
         $remain_quantity = trim($_POST['remain_quantity'] ?? '');
-        $pickup_location = trim($_POST['pickup_location'] ?? '');
-        $expires_at      = trim($_POST['expires_at'] ?? '');
+        // pickup_location is never read from $_POST here — it's locked to
+        // the provider's profile (see $providerLocation above) and can
+        // only be changed by editing the profile itself.
+        $duration_minutes = trim($_POST['duration_minutes'] ?? '');
         $selectedTags    = array_map('intval', $_POST['tags'] ?? []);
 
         if ($food_name === '' || strlen($food_name) > 200) {
@@ -61,26 +90,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ((int)$remain_quantity > (int)$owned['total_quantity']) {
             $errors[] = "Remaining quantity cannot exceed the initial quantity (" . (int)$owned['total_quantity'] . ").";
         }
-        if ($pickup_location === '') {
-            $errors[] = "Please provide a pickup location.";
-        }
-        if ($expires_at === '' || strtotime($expires_at) === false) {
-            $errors[] = "Please provide a valid expiring time.";
+        if (!array_key_exists((int)$duration_minutes, $durationOptions)) {
+            $errors[] = "Please select how long this listing should stay available for.";
         }
 
         if (empty($errors)) {
-            $expiresFormatted = date('Y-m-d H:i:s', strtotime($expires_at));
+            // expires_at always stays anchored to this listing's ORIGINAL
+            // created_at, not "now" — picking "2 hours" always means
+            // "2 hours from when it was first created", consistently,
+            // whether you're creating it or editing it later.
+            $expiresFormatted = date(
+                'Y-m-d H:i:s',
+                strtotime($owned['created_at'] . ' +' . (int)$duration_minutes . ' minutes')
+            );
             $remainInt = (int)$remain_quantity;
 
-            $stmt = mysqli_prepare($conn, "
-                UPDATE food_listing
-                SET food_name = ?, description = ?, remain_quantity = ?, pickup_location = ?, expires_at = ?
-                WHERE listing_id = ? AND provider_id = ?
-            ");
-            mysqli_stmt_bind_param(
-                $stmt, "ssissii",
-                $food_name, $description, $remainInt, $pickup_location, $expiresFormatted, $targetId, $providerId
-            );
+            // If the expiry window actually changed on an already-approved
+            // listing, that's effectively a new claim about when this food
+            // is available — send it back for re-approval rather than
+            // silently keeping the old admin sign-off attached to it.
+            $expiryChanged = $expiresFormatted !== $owned['expires_at'];
+            $needsReapproval = $expiryChanged && $owned['status'] !== 'pending';
+
+            if ($needsReapproval) {
+                $stmt = mysqli_prepare($conn, "
+                    UPDATE food_listing
+                    SET food_name = ?, description = ?, remain_quantity = ?, expires_at = ?,
+                        status = 'pending', approved_by = NULL, approved_at = NULL
+                    WHERE listing_id = ? AND provider_id = ?
+                ");
+                mysqli_stmt_bind_param(
+                    $stmt, "ssisii",
+                    $food_name, $description, $remainInt, $expiresFormatted, $targetId, $providerId
+                );
+            } else {
+                $stmt = mysqli_prepare($conn, "
+                    UPDATE food_listing
+                    SET food_name = ?, description = ?, remain_quantity = ?, expires_at = ?
+                    WHERE listing_id = ? AND provider_id = ?
+                ");
+                mysqli_stmt_bind_param(
+                    $stmt, "ssisii",
+                    $food_name, $description, $remainInt, $expiresFormatted, $targetId, $providerId
+                );
+            }
 
             if (mysqli_stmt_execute($stmt)) {
                 mysqli_stmt_close($stmt);
@@ -100,7 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     mysqli_stmt_close($tagStmt);
                 }
 
-                $successMsg = "Listing updated successfully.";
+                $successMsg = $needsReapproval
+                    ? "Listing updated. Since the expiring window changed, it's back in 'Pending Review' until an admin re-approves it."
+                    : "Listing updated successfully.";
             } else {
                 $errors[] = "Failed to update the listing. Please try again.";
                 mysqli_stmt_close($stmt);
@@ -258,12 +313,28 @@ $selectedTagIds = $selectedListing ? getListingTagIds($conn, $selectedId) : [];
 
                                     <div class="field-row">
                                         <div class="field-group">
-                                            <label class="field-label">Pickup Location</label>
-                                            <input type="text" name="pickup_location" class="text-input" value="<?= htmlspecialchars($selectedListing['pickup_location']) ?>" <?= $isLocked ? 'readonly' : 'required' ?>>
+                                            <label class="field-label">Pickup Location <span style="font-weight:400; color:#98A2B3;">— from your provider profile</span></label>
+                                            <input type="text" class="text-input" value="<?= htmlspecialchars($providerLocation) ?>" readonly style="background:#F2F4F7; color:#667085; cursor:not-allowed;">
                                         </div>
                                         <div class="field-group">
-                                            <label class="field-label">Expiring Time</label>
-                                            <input type="datetime-local" name="expires_at" class="text-input" value="<?= date('Y-m-d\TH:i', strtotime($selectedListing['expires_at'])) ?>" <?= $isLocked ? 'readonly' : 'required' ?>>
+                                            <label class="field-label">Expiring Window <span style="font-weight:400; color:#98A2B3;">— from creation time</span></label>
+                                            <?php
+                                                // Preselect whichever option matches how this listing was
+                                                // originally configured (created_at -> expires_at gap).
+                                                $currentDurationMinutes = round(
+                                                    (strtotime($selectedListing['expires_at']) - strtotime($selectedListing['created_at'])) / 60
+                                                );
+                                            ?>
+                                            <select name="duration_minutes" class="text-input" <?= $isLocked ? 'disabled' : 'required' ?>>
+                                                <?php foreach ($durationOptions as $minutes => $labelText): ?>
+                                                    <option value="<?= $minutes ?>" <?= $currentDurationMinutes === $minutes ? 'selected' : '' ?>>
+                                                        <?= htmlspecialchars($labelText) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <?php if (!$isLocked && $selectedListing['status'] !== 'pending'): ?>
+                                                <span style="font-size:12px; color:#B54708;">Changing this will send the listing back for admin re-approval.</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
 
@@ -274,10 +345,16 @@ $selectedTagIds = $selectedListing ? getListingTagIds($conn, $selectedId) : [];
 
                                     <?php if (!$isLocked): ?>
                                         <div class="detail-footer-actions">
-                                            <button type="submit" name="cancel_listing" value="1" class="btn-danger-outline" onclick="return confirm('Cancel this listing? Students will no longer be able to claim it.');">Cancel Listing</button>
+                                            <button type="submit" name="cancel_listing" value="1" class="btn-danger-outline" onclick="return confirm('Cancel this listing? Students will no longer be able to claim it.');">
+                                                <ion-icon name="trash-outline"></ion-icon> Cancel Listing
+                                            </button>
                                             <div style="display:flex; gap:12px;">
-                                                <a href="?id=<?= $selectedId ?>" class="btn-outline" style="text-decoration:none; display:inline-flex; align-items:center;">Discard Changes</a>
-                                                <button type="submit" name="update_listing" value="1" class="btn-primary">Update Listing</button>
+                                                <a href="?id=<?= $selectedId ?>" class="btn-outline" style="text-decoration:none;">
+                                                    <ion-icon name="refresh-outline"></ion-icon> Discard Changes
+                                                </a>
+                                                <button type="submit" name="update_listing" value="1" class="btn-primary">
+                                                    <ion-icon name="checkmark-outline"></ion-icon> Update Listing
+                                                </button>
                                             </div>
                                         </div>
                                     <?php endif; ?>

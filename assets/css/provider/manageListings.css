@@ -5,19 +5,6 @@
    btn-outline/btn-primary) live in provider.css.
    ========================================= */
 
-.btn-danger-outline {
-    background-color: #FFFFFF;
-    color: #B42318;
-    border: 1px solid #FDA29B;
-    border-radius: 8px;
-    padding: 10px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.btn-danger-outline:hover { background-color: #FEF3F2; }
-
 .manage-listings-grid {
     display: grid;
     grid-template-columns: 340px 1fr;
@@ -157,9 +144,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-top: 24px;
     padding-top: 18px;
     border-top: 1px solid #EAECF0;
+}
+
+.detail-footer-actions .btn-primary,
+.detail-footer-actions .btn-outline,
+.detail-footer-actions .btn-danger-outline {
+    min-width: 140px;
 }
 
 @media (max-width: 900px) {

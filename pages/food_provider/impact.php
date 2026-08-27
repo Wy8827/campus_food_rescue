@@ -201,25 +201,6 @@ $milestones = [
         'sub' => $allTime['co2'] >= 500 ? 'Huge environmental impact' : round(500 - $allTime['co2'], 1) . ' kg more to go'],
 ];
 
-// =========================================================
-// Completed pickup history table
-// =========================================================
-$stmt = mysqli_prepare($conn, "
-    SELECT c.claim_id, c.portion_claimed, c.confirmed_at,
-           f.food_name, f.total_quantity, f.remain_quantity,
-           ir.co2_saved_kg, ir.water_saved_litre
-    FROM claim c
-    JOIN food_listing f ON c.listing_id = f.listing_id
-    LEFT JOIN impact_record ir ON ir.claim_id = c.claim_id
-    WHERE f.provider_id = ? AND c.status = 'completed'
-    ORDER BY c.confirmed_at DESC
-    LIMIT 10
-");
-mysqli_stmt_bind_param($stmt, "i", $providerId);
-mysqli_stmt_execute($stmt);
-$history = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
-mysqli_stmt_close($stmt);
-
 $periodLabels = ['week' => 'This week', 'month' => 'This month', 'year' => 'This year', 'all' => 'All time'];
 ?>
 <!DOCTYPE html>
@@ -351,36 +332,6 @@ $periodLabels = ['week' => 'This week', 'month' => 'This month', 'year' => 'This
                     </div>
                 </div>
 
-                <div class="im-card">
-                    <div class="im-card-title">Completed pickup history</div>
-                    <div class="im-card-sub" style="margin-bottom:16px">All listings that were successfully claimed and picked up</div>
-                    <div class="ct-table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Food item</th><th>Date</th><th>Portions rescued</th>
-                                    <th>CO2 saved</th><th>Water saved</th><th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (empty($history)): ?>
-                                    <tr><td colspan="6" style="text-align:center; padding:24px; color:#A1A1AA;">No completed pickups yet.</td></tr>
-                                <?php else: foreach ($history as $h):
-                                    $isPartial = (int)$h['remain_quantity'] > 0;
-                                ?>
-                                    <tr>
-                                        <td><strong><?= htmlspecialchars($h['food_name']) ?></strong></td>
-                                        <td style="color:#A1A1AA"><?= date('M j, Y', strtotime($h['confirmed_at'])) ?></td>
-                                        <td><?= (int)$h['portion_claimed'] ?> / <?= (int)$h['total_quantity'] ?></td>
-                                        <td><?= $h['co2_saved_kg'] !== null ? round((float)$h['co2_saved_kg'], 2) . ' kg' : '—' ?></td>
-                                        <td><?= $h['water_saved_litre'] !== null ? round((float)$h['water_saved_litre']) . ' L' : '—' ?></td>
-                                        <td><span class="badge <?= $isPartial ? 'b-exp' : 'b-done' ?>"><?= $isPartial ? 'Partial' : 'Completed' ?></span></td>
-                                    </tr>
-                                <?php endforeach; endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

@@ -6,6 +6,25 @@
 // ============================================================
 
 /**
+ * Flips any food_listing that has silently passed its expiry into the
+ * 'expired' status. Nothing in the app previously did this on a timer —
+ * this is called at the top of every page that reads food_listing so the
+ * status column is always correct by the time that page's SELECT runs,
+ * with no cron/scheduler needed.
+ */
+function syncExpiredListings(mysqli $conn): void {
+    mysqli_query($conn, "UPDATE food_listing SET status = 'expired' WHERE status = 'active' AND expires_at <= NOW()");
+}
+
+/**
+ * Same idea as syncExpiredListings(), but for claims whose reservation
+ * hold window has passed without the student ever getting scanned in.
+ */
+function syncExpiredClaims(mysqli $conn): void {
+    mysqli_query($conn, "UPDATE claim SET status = 'expired' WHERE status IN ('pending','confirmed') AND reservation_expires_at < NOW()");
+}
+
+/**
  * Look up the provider_id (provider profile row) that belongs to
  * the currently logged-in user. Every food_provider page needs this
  * because food_listing / claim rows are scoped by provider_id, not
@@ -230,7 +249,9 @@ function bindAndExecute(mysqli_stmt $stmt, array $params): bool {
  * used by both claimTracker.php (paginated view) and exportClaims.php
  * (CSV export) so the two never drift out of sync with each other.
  *
- * $filters keys: status, listing_id, qr, q  (all optional/nullable)
+ * $filters keys: status, listing_id, q  (all optional/nullable)
+ * ("qr" was removed — it was always a strict subset of "status", so it
+ * could never narrow results any differently and just duplicated it.)
  * Returns ['where' => string, 'params' => array]
  */
 function buildClaimFilterWhere(int $providerId, array $filters): array {
@@ -251,15 +272,6 @@ function buildClaimFilterWhere(int $providerId, array $filters): array {
     if ($listingId > 0) {
         $where .= " AND f.listing_id = ?";
         $params[] = $listingId;
-    }
-
-    $qr = $filters['qr'] ?? '';
-    if ($qr === 'scanned') {
-        $where .= " AND c.status = 'completed'";
-    } elseif ($qr === 'awaiting') {
-        $where .= " AND c.status IN ('pending','confirmed') AND c.reservation_expires_at >= NOW()";
-    } elseif ($qr === 'expired') {
-        $where .= " AND c.status = 'expired'";
     }
 
     $q = trim($filters['q'] ?? '');

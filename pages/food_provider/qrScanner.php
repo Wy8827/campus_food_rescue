@@ -16,6 +16,12 @@ if (!$providerId) {
 
 // Gate: block all provider functionality until an admin approves the account
 requireApprovedProvider($conn, $providerId);
+
+// A claim whose reservation window lapsed since the last page load should
+// show up (and be treated) as expired here too, not just be silently
+// unscannable with no explanation.
+syncExpiredClaims($conn);
+
 // Per-browser-session scan counters (reset when the session ends)
 if (!isset($_SESSION['scan_stats'])) {
     $_SESSION['scan_stats'] = ['scans' => 0, 'manual' => 0];

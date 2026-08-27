@@ -245,31 +245,51 @@
 .checkbox-item input { width: 16px; height: 16px; cursor: pointer; }
 
 /* ===================== Create Listing layout ===================== */
+.btn-outline,
+.btn-primary,
+.btn-danger-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+                box-shadow 0.15s ease, transform 0.05s ease;
+}
+
 .btn-outline {
     background-color: #FFFFFF;
     color: #344054;
     border: 1px solid #D0D5DD;
-    border-radius: 8px;
-    padding: 10px 22px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
 }
 
-.btn-outline:hover { background-color: #F9FAFB; }
+.btn-outline:hover { background-color: #F9FAFB; border-color: #98A2B3; }
+.btn-outline:active { transform: translateY(1px); }
 
 .btn-primary {
     background-color: #385E29;
     color: #FFFFFF;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 22px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+    border: 1px solid #385E29;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
 }
 
-.btn-primary:hover { background-color: #2b4920; }
+.btn-primary:hover { background-color: #2b4920; border-color: #2b4920; box-shadow: 0 2px 6px rgba(56, 94, 41, 0.25); }
+.btn-primary:active { transform: translateY(1px); }
+
+.btn-danger-outline {
+    background-color: #FFFFFF;
+    color: #B42318;
+    border: 1px solid #FDA29B;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.btn-danger-outline:hover { background-color: #FEF3F2; border-color: #B42318; }
+.btn-danger-outline:active { transform: translateY(1px); }
 
 .status-pill {
     font-size: 10px;

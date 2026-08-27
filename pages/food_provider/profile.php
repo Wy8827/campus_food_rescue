@@ -23,31 +23,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---------------- 1. Save store profile ----------------
     if (isset($_POST['save_profile'])) {
-        $provider_name       = trim($_POST['provider_name'] ?? '');
-        $cuisine_category    = trim($_POST['cuisine_category'] ?? '');
-        $location            = trim($_POST['location'] ?? '');
-        $pickup_instructions = trim($_POST['pickup_instructions'] ?? '');
-        $operating_hours     = trim($_POST['operating_hours'] ?? '');
-        $contact_person      = trim($_POST['contact_person'] ?? '');
-        $contact_number      = trim($_POST['contact_number'] ?? '');
-        $notify_on_claim      = isset($_POST['notify_on_claim']) ? 1 : 0;
-        $notify_expiry_alert  = isset($_POST['notify_expiry_alert']) ? 1 : 0;
-        $notify_weekly_digest = isset($_POST['notify_weekly_digest']) ? 1 : 0;
+        $provider_name   = trim($_POST['provider_name'] ?? '');
+        $location        = trim($_POST['location'] ?? '');
+        $operating_hours = trim($_POST['operating_hours'] ?? '');
+        $contact_number  = trim($_POST['contact_number'] ?? '');
+        // Cuisine Category, Pickup Instructions, Primary Contact Person, and
+        // Notification Preferences were removed — the `provider` table has
+        // no matching columns for any of them, so this UPDATE previously
+        // failed with an "unknown column" error every time it ran.
 
         if ($provider_name === '' || $location === '' || $contact_number === '') {
             $error_msg = "Store name, location, and contact number are required.";
         } else {
             $query = "UPDATE provider SET
-                        provider_name = ?, cuisine_category = ?, location = ?, pickup_instructions = ?,
-                        operating_hours = ?, contact_person = ?, contact_number = ?,
-                        notify_on_claim = ?, notify_expiry_alert = ?, notify_weekly_digest = ?
+                        provider_name = ?, location = ?, operating_hours = ?, contact_number = ?
                       WHERE provider_id = ? AND user_id = ?";
             $stmt = mysqli_prepare($conn, $query);
             mysqli_stmt_bind_param(
-                $stmt, "sssssssiiiii",
-                $provider_name, $cuisine_category, $location, $pickup_instructions,
-                $operating_hours, $contact_person, $contact_number,
-                $notify_on_claim, $notify_expiry_alert, $notify_weekly_digest,
+                $stmt, "ssssii",
+                $provider_name, $location, $operating_hours, $contact_number,
                 $providerId, $userId
             );
             if (mysqli_stmt_execute($stmt)) {
@@ -165,7 +159,7 @@ if (!$provider) {
                 <div class="user-page-header">
                     <div class="user-page-header-left">
                         <h1 class="page-title">Manage Store Details</h1>
-                        <p class="page-subtitle">Update your public profile, location guidelines, and notification preferences.</p>
+                        <p class="page-subtitle">Update your public profile and store details.</p>
                     </div>
                     <div class="user-page-header-right">
                         <button type="button" class="export-button">Edit Profile</button>
@@ -183,10 +177,6 @@ if (!$provider) {
                                         <span class="info-label">Store Name</span>
                                         <input type="text" name="provider_name" class="info-value" value="<?= htmlspecialchars($provider['provider_name']) ?>" readonly>
                                     </div>
-                                    <div class="profile-info-item">
-                                        <span class="info-label">Cuisine Category</span>
-                                        <input type="text" name="cuisine_category" class="info-value" value="<?= htmlspecialchars($provider['cuisine_category'] ?? '') ?>" placeholder="e.g., Malaysian / Indian-Muslim" readonly>
-                                    </div>
                                 </div>
                                 <span class="status-pill <?= $provider['provider_status'] === 'active' ? 'badge-active' : 'badge-pending' ?>">
                                     <?= $provider['provider_status'] === 'active' ? '✓ Verified Campus Vendor' : ucfirst(str_replace('_',' ', $provider['provider_status'])) ?>
@@ -199,10 +189,6 @@ if (!$provider) {
                                     <div class="profile-info-item">
                                         <span class="info-label">Campus Location</span>
                                         <input type="text" name="location" class="info-value" value="<?= htmlspecialchars($provider['location']) ?>" readonly>
-                                    </div>
-                                    <div class="profile-info-item">
-                                        <span class="info-label">Pickup Instructions (Shown to Students)</span>
-                                        <textarea name="pickup_instructions" class="info-value" rows="3" readonly><?= htmlspecialchars($provider['pickup_instructions'] ?? '') ?></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -217,34 +203,9 @@ if (!$provider) {
                                         <input type="text" name="operating_hours" class="info-value" value="<?= htmlspecialchars($provider['operating_hours'] ?? '') ?>" placeholder="e.g., Mon-Sun 7:00am-8:00pm" readonly>
                                     </div>
                                     <div class="profile-info-item">
-                                        <span class="info-label">Primary Contact Person</span>
-                                        <input type="text" name="contact_person" class="info-value" value="<?= htmlspecialchars($provider['contact_person'] ?? '') ?>" readonly>
-                                    </div>
-                                    <div class="profile-info-item">
                                         <span class="info-label">Contact Phone Number</span>
                                         <input type="text" name="contact_number" class="info-value" value="<?= htmlspecialchars($provider['contact_number']) ?>" readonly>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div class="quick-links-container">
-                                <span class="quick-link-header" style="text-align:left; margin-top:0;">Notification Preferences</span>
-                                <div class="alert-setting">
-                                    <label class="alert-setting-item">
-                                        Notify me when a student claims a food item
-                                        <input type="hidden" name="notify_on_claim" value="<?= ($provider['notify_on_claim'] ?? 1) ? 1 : 0 ?>" class="notify-hidden">
-                                        <img src="../../assets/images/<?= ($provider['notify_on_claim'] ?? 1) ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_on_claim">
-                                    </label>
-                                    <label class="alert-setting-item">
-                                        Alert me 15 minutes before an active listing expires
-                                        <input type="hidden" name="notify_expiry_alert" value="<?= ($provider['notify_expiry_alert'] ?? 1) ? 1 : 0 ?>" class="notify-hidden">
-                                        <img src="../../assets/images/<?= ($provider['notify_expiry_alert'] ?? 1) ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_expiry_alert">
-                                    </label>
-                                    <label class="alert-setting-item">
-                                        Weekly food rescue impact summary digest
-                                        <input type="hidden" name="notify_weekly_digest" value="<?= ($provider['notify_weekly_digest'] ?? 0) ? 1 : 0 ?>" class="notify-hidden">
-                                        <img src="../../assets/images/<?= ($provider['notify_weekly_digest'] ?? 0) ? 'on' : 'off' ?>.png" alt="status" class="switch" data-target="notify_weekly_digest">
-                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -295,16 +256,5 @@ if (!$provider) {
         </div>
     </div>
 
-    <script>
-        // Keep the hidden notify_* inputs in sync with the on/off switch images
-        document.querySelectorAll('.switch[data-target]').forEach(function (img) {
-            img.addEventListener('click', function () {
-                const hidden = document.querySelector('input[name="' + img.dataset.target + '"]');
-                setTimeout(function () {
-                    hidden.value = img.src.includes('on.png') ? '1' : '0';
-                }, 0);
-            });
-        });
-    </script>
 </body>
 </html>

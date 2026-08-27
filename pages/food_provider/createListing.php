@@ -20,20 +20,47 @@ $allTags = getAllFoodTags($conn);
 $errors = [];
 $success = false;
 
+// Pickup location is always the provider's own registered address —
+// pulled from their profile, not retyped per listing.
+$stmt = mysqli_prepare($conn, "SELECT location FROM provider WHERE provider_id = ?");
+mysqli_stmt_bind_param($stmt, "i", $providerId);
+mysqli_stmt_execute($stmt);
+$providerRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_close($stmt);
+$pickup_location = $providerRow['location'] ?? '';
+
 // Keep submitted values so the form can be redisplayed with them on error
-$food_name = $description = $pickup_location = $expires_at = '';
+$food_name = $description = '';
+$duration_minutes = '';
 $quantity = '';
 $weight_kg = '';
 $selectedTags = [];
 
+// Fixed set of "good for X" windows a provider can pick from. expires_at
+// is always computed as created_at + this duration — it never depends on
+// when an admin happens to get around to approving it.
+$durationOptions = [
+    30   => '30 minutes',
+    60   => '1 hour',
+    120  => '2 hours',
+    180  => '3 hours',
+    240  => '4 hours',
+    360  => '6 hours',
+    720  => '12 hours',
+    1440 => '24 hours',
+];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $food_name       = trim($_POST['food_name'] ?? '');
-    $description     = trim($_POST['description'] ?? '');
-    $quantity        = trim($_POST['quantity'] ?? '');
-    $weight_kg       = trim($_POST['weight_kg'] ?? '');
-    $pickup_location = trim($_POST['pickup_location'] ?? '');
-    $expires_at      = trim($_POST['expires_at'] ?? '');
-    $selectedTags    = array_map('intval', $_POST['tags'] ?? []);
+    $food_name        = trim($_POST['food_name'] ?? '');
+    $description      = trim($_POST['description'] ?? '');
+    $quantity          = trim($_POST['quantity'] ?? '');
+    $weight_kg         = trim($_POST['weight_kg'] ?? '');
+    // pickup_location is intentionally NOT read from $_POST — it's locked
+    // to the provider's own registered address (set above) and never
+    // trusted from the submitted form, even if someone tampers with the
+    // (disabled) field in devtools.
+    $duration_minutes  = trim($_POST['duration_minutes'] ?? '');
+    $selectedTags      = array_map('intval', $_POST['tags'] ?? []);
 
     // ---------------- Validation ----------------
     if ($food_name === '' || strlen($food_name) > 200) {
@@ -42,19 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($quantity === '' || !ctype_digit($quantity) || (int)$quantity <= 0) {
         $errors[] = "Quantity must be a whole number greater than 0.";
     }
-    if ($weight_kg !== '' && (!is_numeric($weight_kg) || (float)$weight_kg < 0)) {
-        $errors[] = "Weight (kg) must be a positive number.";
+    if ($weight_kg === '' || !is_numeric($weight_kg) || (float)$weight_kg <= 0) {
+        $errors[] = "Weight (kg) is required and must be a positive number.";
     }
-    if ($pickup_location === '' || strlen($pickup_location) > 200) {
-        $errors[] = "Please provide a pickup location (max 200 characters).";
+    if ($pickup_location === '') {
+        $errors[] = "No pickup location is set on your provider profile yet. Please update your profile first.";
     }
-    if ($expires_at === '') {
-        $errors[] = "Please set an expiring window.";
-    } else {
-        $expiresTimestamp = strtotime($expires_at);
-        if ($expiresTimestamp === false || $expiresTimestamp <= time()) {
-            $errors[] = "The expiring window must be a valid date/time in the future.";
-        }
+    if (!array_key_exists((int)$duration_minutes, $durationOptions)) {
+        $errors[] = "Please select how long this listing should stay available for.";
     }
 
     // ---------------- Image upload ----------------
@@ -82,8 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---------------- Insert ----------------
     if (empty($errors)) {
-        $expiresFormatted = date('Y-m-d H:i:s', strtotime($expires_at));
-        $weightParam = $weight_kg === '' ? null : (float)$weight_kg;
+        // expires_at = created_at + chosen duration. Both created_at (via
+        // the column's DEFAULT CURRENT_TIMESTAMP) and this value are set
+        // in the same INSERT, so they land at the same instant.
+        $expiresFormatted = date('Y-m-d H:i:s', strtotime('+' . (int)$duration_minutes . ' minutes'));
+        $weightParam = (float)$weight_kg;
 
         $query = "INSERT INTO food_listing
                     (provider_id, food_name, description, total_quantity, remain_quantity, weight_kg, pickup_location, image, status, expires_at)
@@ -111,8 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $success = true;
-            // Reset the form for the next entry
-            $food_name = $description = $pickup_location = $expires_at = $quantity = $weight_kg = '';
+            // Reset the form for the next entry (pickup_location stays as-is —
+            // it's locked to the provider's profile, not part of the form reset)
+            $food_name = $description = $duration_minutes = $quantity = $weight_kg = '';
             $selectedTags = [];
         } else {
             $errors[] = "Failed to save the listing. Please try again.";
@@ -182,8 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
 
                                 <div class="field-group">
-                                    <label class="field-label">Approx. Weight (kg) <span style="font-weight:400; color:#98A2B3;">— optional, used for impact stats</span></label>
-                                    <input type="number" name="weight_kg" min="0" step="0.1" class="text-input" placeholder="e.g., 2.5" value="<?= htmlspecialchars($weight_kg) ?>" style="max-width:220px;">
+                                    <label class="field-label">Approx. Weight (kg)</label>
+                                    <input type="number" name="weight_kg" min="0.1" step="0.1" class="text-input" placeholder="e.g., 2.5" value="<?= htmlspecialchars($weight_kg) ?>" style="max-width:220px;" required>
                                 </div>
 
                                 <div class="field-group">
@@ -204,12 +230,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <h3 class="form-section-title" style="margin-top:22px;">Logistics</h3>
                                 <div class="field-row">
                                     <div class="field-group">
-                                        <label class="field-label">Pickup Location</label>
-                                        <input type="text" name="pickup_location" class="text-input" placeholder="e.g., Main Cafeteria, Counter 3" value="<?= htmlspecialchars($pickup_location) ?>" maxlength="200" required>
+                                        <label class="field-label">Pickup Location <span style="font-weight:400; color:#98A2B3;">— from your provider profile</span></label>
+                                        <input type="text" class="text-input" value="<?= htmlspecialchars($pickup_location) ?>" readonly style="background:#F2F4F7; color:#667085; cursor:not-allowed;">
+                                        <span style="font-size:12px; color:#98A2B3;">To change this, update it in <a href="profile.php">your profile</a>.</span>
                                     </div>
                                     <div class="field-group">
                                         <label class="field-label">Expiring Window</label>
-                                        <input type="datetime-local" name="expires_at" class="text-input" value="<?= htmlspecialchars($expires_at) ?>" required>
+                                        <select name="duration_minutes" class="text-input" required>
+                                            <option value="">Select how long this stays available...</option>
+                                            <?php foreach ($durationOptions as $minutes => $labelText): ?>
+                                                <option value="<?= $minutes ?>" <?= (string)$duration_minutes === (string)$minutes ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($labelText) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
