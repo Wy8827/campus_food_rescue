@@ -11,7 +11,7 @@ $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($wor
 $topbar_profile_pages = [
     'admin'    => 'adminprofile.php',
     'provider' => 'profile.php',
-    'student'  => 'profile.php',
+    'student'  => 'studentprofile.php',
 ];
 $topbar_profile_page = $topbar_profile_pages[$roleLower] ?? 'profile.php';
 ?>

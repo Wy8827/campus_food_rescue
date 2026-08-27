@@ -1,0 +1,64 @@
+.main-content { margin-left: 280px; }
+.content-container { padding: 30px; margin-top: 90px; display: flex; flex-direction: column; width: 100%; }
+.page-title { font-weight: bold; font-family: "Inter", sans-serif; font-size: 28px; margin: 0; color: #0F172A; }
+.page-subtitle { font-family: "Inter", sans-serif; margin-left: 0; margin-top: 10px; font-size: 14px; color: #475569; }
+.leaderboard-hero { display: grid; grid-template-columns: 1fr 250px; gap: 20px; margin-top: 24px; }
+.podium-card, .your-status-card, .leaderboard-table-card { background: #fff; border: 1px solid #C2C9B7; border-radius: 11px; box-shadow: 0 2px 6px rgba(32,52,20,.04); }
+.podium-card { padding: 20px 24px 18px; }
+.podium-heading { text-align: center; color: #475569; font-size: 12px; font-weight: 700; }
+.podium { height: 200px; display: flex; align-items: flex-end; justify-content: center; gap: 16px; padding-top: 20px; }
+.podium-person { width: 130px; min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12px 6px; border-radius: 8px 8px 0 0; position: relative; background: #F8FAFC; }
+.podium-person.rank-1 { min-height: 140px; background: #edf5e8; }
+.podium-person.rank-2 { min-height: 120px; }
+.podium-person.rank-3 { min-height: 110px; }
+.avatar-circle { width: 40px; height: 40px; margin-bottom: 6px; display: grid; place-items: center; border-radius: 50%; background: #d5ded0; color: #2d650c; font-weight: 700; font-size: 14px; border: 2px solid #fff; }
+.podium-rank { position: absolute; top: 8px; right: 8px; color: #64748B; font-size: 11px; font-weight: 700; }
+.podium-person strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #0F172A; font-size: 12px; font-weight: 600; }
+.podium-person small { color: #64748B; font-size: 11px; margin-top: 4px; }
+.your-status-card { padding: 24px; color: #fff; background: #2d650c; border-color: #2d650c; }
+.your-status-card > span { font-size: 12px; opacity: .85; font-weight: 600; }
+.your-status-card > strong { display: block; margin-top: 8px; font-size: 32px; font-weight: 700; }
+.your-status-card > small { font-size: 12px; opacity: .8; }
+.status-divider { height: 1px; margin: 18px 0 14px; background: rgba(255,255,255,.2); }
+.status-stat { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 12px; }
+.status-stat span { opacity: .8; }
+.status-stat b { font-size: 13px; font-weight: 600; }
+.leaderboard-table-card { margin-top: 20px; overflow: hidden; }
+.leaderboard-tabs { display: flex; gap: 24px; padding: 0 20px; border-bottom: 1px solid #E2E8F0; }
+.tab { padding: 14px 4px; color: #64748B; font-size: 13px; font-weight: 600; text-decoration: none; }
+.tab.active { color: #2d650c; border-bottom: 2px solid #2d650c; }
+.table-wrap { overflow-x: auto; }
+.leaderboard-table-card table { width: 100%; border-collapse: collapse; min-width: 650px; }
+.leaderboard-table-card th { padding: 14px 16px; background: #F8FAFC; color: #64748B; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+.leaderboard-table-card td { padding: 14px 16px; border-top: 1px solid #E2E8F0; color: #0F172A; font-size: 13px; }
+.leaderboard-table-card tr.current-user { background: #f0f7eb; }
+.student-cell { display: flex; align-items: center; gap: 10px; }
+.student-cell b { color: #2d650c; font-size: 13px; font-weight: 600; }
+.mini-avatar { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #e1e9dc; color: #2d650c; font-size: 12px; font-weight: 700; }
+.badge-chip { padding: 6px 10px; border-radius: 999px; background: #eef5e9; color: #2d650c; font-size: 11px; font-weight: 700; }
+@media (max-width: 760px) {
+	.main-content { margin-left: 0; }
+	.content-container { padding: 20px; margin-top: 90px; }
+	.leaderboard-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+	.podium-card { padding: 16px 14px 12px; }
+	.podium { height: 170px; gap: 8px; padding-top: 14px; }
+	.podium-person { width: auto; min-width: 0; flex: 1; padding: 10px 4px; }
+	.podium-person.rank-1 { min-height: 130px; }
+	.podium-person.rank-2 { min-height: 110px; }
+	.podium-person.rank-3 { min-height: 100px; }
+	.podium-person strong { font-size: 11px; }
+	.podium-person small { max-width: 100%; font-size: 10px; text-align: center; }
+	.your-status-card { min-height: 0; padding: 20px; }
+	.your-status-card > strong { font-size: 28px; }
+	.status-divider { margin: 14px 0 10px; }
+	.leaderboard-table-card table { min-width: 0; table-layout: fixed; }
+	.leaderboard-table-card th, .leaderboard-table-card td { padding: 8px 4px; font-size: 7px; overflow-wrap: anywhere; }
+	.leaderboard-table-card th:nth-child(1), .leaderboard-table-card td:nth-child(1) { width: 10%; }
+	.leaderboard-table-card th:nth-child(2), .leaderboard-table-card td:nth-child(2) { width: 34%; }
+	.leaderboard-table-card th:nth-child(3), .leaderboard-table-card td:nth-child(3) { width: 18%; }
+	.leaderboard-table-card th:nth-child(4), .leaderboard-table-card td:nth-child(4) { width: 18%; }
+	.leaderboard-table-card th:nth-child(5), .leaderboard-table-card td:nth-child(5) { width: 20%; }
+	.student-cell { gap: 4px; }
+	.student-cell b { font-size: 6px; }
+	.badge-chip { display: inline-block; max-width: 100%; white-space: normal; }
+}

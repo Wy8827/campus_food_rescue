@@ -28,8 +28,8 @@
         ],
         'student' => [
             ['url' => 'dashboard.php',       'title' => 'Browse Food',      'icon' => '../../assets/images/overview.png'],
-            ['url' => 'myClaims.php',        'title' => 'My Claims',        'icon' => '../../assets/images/auditlog.png'],
-            ['url' => 'impactSummary.php',   'title' => 'My Impact',        'icon' => '../../assets/images/impact.png'],
+            ['url' => 'claims.php',          'title' => 'My Claims',        'icon' => '../../assets/images/auditlog.png'],
+            ['url' => 'leaderboard.php',     'title' => 'Leaderboard',      'icon' => '../../assets/images/impact.png'],
         ],
     ];
 
@@ -38,7 +38,7 @@
     $profile_pages = [
         'admin'    => 'adminprofile.php',
         'provider' => 'profile.php',
-        'student'  => 'studentProfile.php',
+        'student'  => 'studentprofile.php',
     ];
     
     $profile_page = $profile_pages[$role] ?? 'profile.php';
