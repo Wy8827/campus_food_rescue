@@ -14,7 +14,7 @@
 
     <main>
         <!-- Hero Section -->
-        <section class="hero">
+        <section class="hero" id="hero">
             <div class="container hero-container">
                 <div>
                     <h1 class="hero-title">
@@ -31,20 +31,19 @@
                     </div>
                 </div>
                 <div class="hero-image-wrapper">
-                    <!-- Placeholder image matching the vibe -->
                     <img src="assets/images/landingpage1.png" alt="Students sharing food" class="hero-image">
                 </div>
             </div>
         </section>
 
         <!-- How It Works Section -->
-        <section class="how-it-works">
+        <section class="how-it-works" id="how-it-works">
             <div class="container">
                 <h2 class="section-title">How It Works</h2>
                 <p class="section-subtitle">Three simple steps to fight food waste on campus.</p>
                 
                 <div class="steps-grid">
-                    <!-- Step 1 -->
+                    <!-- Step 1: Browse -->
                     <div class="step-card">
                         <div class="step-icon">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -53,7 +52,7 @@
                         <p class="step-desc">Check real-time listings of available surplus food from participating dining locations across campus.</p>
                     </div>
 
-                    <!-- Step 2 -->
+                    <!-- Step 2: Claim -->
                     <div class="step-card">
                         <div class="step-icon">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
@@ -62,7 +61,7 @@
                         <p class="step-desc">Reserve the items you want with a single tap. Reservations are held for a specific pickup window.</p>
                     </div>
 
-                    <!-- Step 3 -->
+                    <!-- Step 3: Pick Up -->
                     <div class="step-card">
                         <div class="step-icon">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
@@ -75,7 +74,7 @@
         </section>
 
         <!-- Impact Section -->
-        <section class="impact">
+        <section class="impact" id="impact">
             <div class="container impact-container">
                 <div class="impact-text-area">
                     <h2 class="section-title">Measurable Impact</h2>
@@ -83,7 +82,7 @@
                 </div>
                 
                 <div class="impact-stats-area">
-                    <!-- Large Stat -->
+                    <!-- Total Rescued Stat -->
                     <div class="stat-card large">
                         <div class="stat-icon">
                             <svg fill="currentColor" viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
@@ -92,7 +91,7 @@
                         <div class="stat-label">Meals Rescued</div>
                     </div>
                     
-                    <!-- Small Stats -->
+                    <!-- Environmental Stats Row -->
                     <div class="stats-row">
                         <div class="stat-card">
                             <div class="stat-icon">
@@ -113,11 +112,10 @@
             </div>
         </section>
 
-        <!-- Why Use Section -->
-        <section class="why-use">
+        <!-- About / Why Us Section -->
+        <section class="why-use" id="about">
             <div class="container why-container">
                 <div>
-                    <!-- Placeholder app mockup -->
                     <img src="assets/images/landingpage2.png" alt="App on mobile phone" class="app-mockup">
                 </div>
 
@@ -157,6 +155,34 @@
                                 <p class="feature-desc">Join thousands of students and staff working together towards a zero-waste campus.</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="faq" id="faq">
+            <div class="container">
+                <h2 class="section-title">Frequently Asked Questions</h2>
+                <p class="section-subtitle">Find answers to common questions about food rescue on campus.</p>
+                
+                <div class="faq-list">
+                    <!-- FAQ Item 1 -->
+                    <div class="faq-item">
+                        <h4 class="faq-question">Who is eligible to claim food?</h4>
+                        <p class="faq-answer">All registered university students, staff, and faculty members with an active campus account can participate.</p>
+                    </div>
+
+                    <!-- FAQ Item 2 -->
+                    <div class="faq-item">
+                        <h4 class="faq-question">Is the food safe to eat?</h4>
+                        <p class="faq-answer">Yes, all surplus meals are packaged and handled according to food safety guidelines right after service hours.</p>
+                    </div>
+
+                    <!-- FAQ Item 3 -->
+                    <div class="faq-item">
+                        <h4 class="faq-question">How does pickup work?</h4>
+                        <p class="faq-answer">Reserve your meal on the platform, visit the pickup counter during the designated time slot, and show your digital confirmation.</p>
                     </div>
                 </div>
             </div>
