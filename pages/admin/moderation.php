@@ -227,7 +227,7 @@ if ($currentView === 'food') {
                                 } else {
                                     $expiresText = "Expires in " . floor($timeDiff / 3600) . "h";
                                 }
-                                $imagePath = $item['image'] ? htmlspecialchars($item['image']) : '../../assets/images/placeholder.jpg';
+                                $imagePath = $item['image'] ? UPLOAD_URL . htmlspecialchars($item['image']) : '../../assets/images/placeholder.jpg';
                             ?>
                                 <li class="moderation-list-item">
                                     <article class="listing-card">
