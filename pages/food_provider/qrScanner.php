@@ -22,25 +22,22 @@ requireApprovedProvider($conn, $providerId);
 // unscannable with no explanation.
 syncExpiredClaims($conn);
 
-// Per-browser-session scan counters (reset when the session ends)
-if (!isset($_SESSION['scan_stats'])) {
-    $_SESSION['scan_stats'] = ['scans' => 0, 'manual' => 0];
-}
-
 $result = null; // ['ok' => bool, 'title' => .., 'message' => ..]
 
 /**
  * Try to resolve a scanned/typed value into a pending claim that
  * belongs to one of THIS provider's listings.
  * Accepts either a raw claim token (hashed & matched against
- * claim_tokens) or a plain numeric student ID (matches their most
- * recent pending/confirmed claim on this provider).
+ * claim_tokens.token_string) or a plain numeric student ID (matches
+ * their most recent pending/confirmed claim on this provider).
  */
 function resolveClaim(mysqli $conn, int $providerId, string $input): ?array {
     $input = trim($input);
     if ($input === '') return null;
 
-    // 1) Try as a claim token
+    // 1) Try as a claim token — claim_tokens stores only the SHA-256
+    // hash of the raw token (see token_string column), never the raw
+    // value, so we hash the input the same way before comparing.
     $hash = hash('sha256', $input);
     $stmt = mysqli_prepare($conn, "
         SELECT c.claim_id, c.listing_id, c.student_id, c.portion_claimed, c.status,
@@ -50,9 +47,13 @@ function resolveClaim(mysqli $conn, int $providerId, string $input): ?array {
         JOIN claim c ON ct.claim_id = c.claim_id
         JOIN food_listing f ON c.listing_id = f.listing_id
         JOIN user u ON c.student_id = u.user_id
-        WHERE ct.token_hash = ? AND f.provider_id = ?
+        WHERE ct.token_string = ? AND f.provider_id = ?
         LIMIT 1
     ");
+    if ($stmt === false) {
+        error_log('qrScanner resolveClaim: token lookup prepare failed: ' . mysqli_error($conn));
+        return null;
+    }
     mysqli_stmt_bind_param($stmt, "si", $hash, $providerId);
     mysqli_stmt_execute($stmt);
     $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -74,6 +75,10 @@ function resolveClaim(mysqli $conn, int $providerId, string $input): ?array {
         ORDER BY c.created_at DESC
         LIMIT 1
     ");
+    if ($stmt === false) {
+        error_log('qrScanner resolveClaim: student-id lookup prepare failed: ' . mysqli_error($conn));
+        return null;
+    }
     mysqli_stmt_bind_param($stmt, "ii", $numericId, $providerId);
     mysqli_stmt_execute($stmt);
     $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -82,7 +87,6 @@ function resolveClaim(mysqli $conn, int $providerId, string $input): ?array {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim_input'])) {
-    $entryMode = ($_POST['entry_mode'] ?? 'manual') === 'scan' ? 'scan' : 'manual';
     $claim = resolveClaim($conn, $providerId, $_POST['claim_input']);
 
     if (!$claim) {
@@ -99,49 +103,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim_input'])) {
         mysqli_stmt_close($stmt);
         $result = ['ok' => false, 'title' => 'Reservation Expired', 'message' => htmlspecialchars($claim['user_name']) . "'s reservation window has passed."];
     } else {
-        // Valid pickup: walk the claim through pending -> confirmed -> completed
-        if ($claim['status'] === 'pending') {
-            $stmt = mysqli_prepare($conn, "UPDATE claim SET status = 'confirmed' WHERE claim_id = ?");
+        // Valid pickup: walk the claim through pending -> confirmed -> completed.
+        // Wrapped in a transaction so a failure partway through (e.g. a
+        // schema mismatch on impact_record) can't leave the claim marked
+        // completed with no token/impact record to match.
+        mysqli_begin_transaction($conn);
+        try {
+            if ($claim['status'] === 'pending') {
+                $stmt = mysqli_prepare($conn, "UPDATE claim SET status = 'confirmed' WHERE claim_id = ?");
+                if ($stmt === false) throw new Exception('prepare failed (claim confirm): ' . mysqli_error($conn));
+                mysqli_stmt_bind_param($stmt, "i", $claim['claim_id']);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+            }
+
+            $stmt = mysqli_prepare($conn, "UPDATE claim SET status = 'completed', confirmed_at = NOW() WHERE claim_id = ?");
+            if ($stmt === false) throw new Exception('prepare failed (claim complete): ' . mysqli_error($conn));
             mysqli_stmt_bind_param($stmt, "i", $claim['claim_id']);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
+
+            if ($claim['token_id']) {
+                $stmt = mysqli_prepare($conn, "UPDATE claim_tokens SET used_at = NOW() WHERE token_id = ?");
+                if ($stmt === false) throw new Exception('prepare failed (token used_at): ' . mysqli_error($conn));
+                mysqli_stmt_bind_param($stmt, "i", $claim['token_id']);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+            }
+
+            // Record impact (skip if it already exists for this claim)
+            $check = mysqli_prepare($conn, "SELECT impact_id FROM impact_record WHERE claim_id = ?");
+            if ($check === false) throw new Exception('prepare failed (impact check): ' . mysqli_error($conn));
+            mysqli_stmt_bind_param($check, "i", $claim['claim_id']);
+            mysqli_stmt_execute($check);
+            $exists = mysqli_fetch_assoc(mysqli_stmt_get_result($check));
+            mysqli_stmt_close($check);
+
+            if (!$exists) {
+                $portions = (int)$claim['portion_claimed'];
+                $co2 = round(0.875 * $portions, 3);
+                $water = round(17.5 * $portions, 2);
+                $ins = mysqli_prepare($conn, "INSERT INTO impact_record (claim_id, co2_saved_kg, water_saved_litre) VALUES (?, ?, ?)");
+                if ($ins === false) throw new Exception('prepare failed (impact insert): ' . mysqli_error($conn));
+                mysqli_stmt_bind_param($ins, "idd", $claim['claim_id'], $co2, $water);
+                mysqli_stmt_execute($ins);
+                mysqli_stmt_close($ins);
+            }
+
+            mysqli_commit($conn);
+
+            $result = [
+                'ok' => true,
+                'title' => 'Pickup Confirmed',
+                'message' => htmlspecialchars($claim['user_name']) . ' — ' . htmlspecialchars($claim['food_name']) . ' (x' . (int)$claim['portion_claimed'] . ')',
+            ];
+        } catch (Throwable $e) {
+            mysqli_rollback($conn);
+            error_log('qrScanner confirm pickup failed: ' . $e->getMessage());
+            $result = ['ok' => false, 'title' => 'Error', 'message' => 'Something went wrong while confirming this pickup. Please try again or contact support.'];
         }
-        $stmt = mysqli_prepare($conn, "UPDATE claim SET status = 'completed', confirmed_at = NOW() WHERE claim_id = ?");
-        mysqli_stmt_bind_param($stmt, "i", $claim['claim_id']);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-
-        if ($claim['token_id']) {
-            $stmt = mysqli_prepare($conn, "UPDATE claim_tokens SET used_at = NOW() WHERE token_id = ?");
-            mysqli_stmt_bind_param($stmt, "i", $claim['token_id']);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        }
-
-        // Record impact (skip if it already exists for this claim)
-        $check = mysqli_prepare($conn, "SELECT impact_id FROM impact_record WHERE claim_id = ?");
-        mysqli_stmt_bind_param($check, "i", $claim['claim_id']);
-        mysqli_stmt_execute($check);
-        $exists = mysqli_fetch_assoc(mysqli_stmt_get_result($check));
-        mysqli_stmt_close($check);
-
-        if (!$exists) {
-            $portions = (int)$claim['portion_claimed'];
-            $co2 = round(0.875 * $portions, 3);
-            $water = round(17.5 * $portions, 2);
-            $ins = mysqli_prepare($conn, "INSERT INTO impact_record (claim_id, quantity_rescued, co2_saved_kg, water_saved_litre) VALUES (?, ?, ?, ?)");
-            mysqli_stmt_bind_param($ins, "iidd", $claim['claim_id'], $portions, $co2, $water);
-            mysqli_stmt_execute($ins);
-            mysqli_stmt_close($ins);
-        }
-
-        $_SESSION['scan_stats'][$entryMode === 'scan' ? 'scans' : 'manual']++;
-
-        $result = [
-            'ok' => true,
-            'title' => 'Pickup Confirmed',
-            'message' => htmlspecialchars($claim['user_name']) . ' — ' . htmlspecialchars($claim['food_name']) . ' (x' . (int)$claim['portion_claimed'] . ')',
-        ];
     }
 }
 
@@ -159,8 +179,6 @@ mysqli_stmt_bind_param($stmt, "i", $providerId);
 mysqli_stmt_execute($stmt);
 $recentValidations = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 mysqli_stmt_close($stmt);
-
-$lastScan = $recentValidations[0]['confirmed_at'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -215,13 +233,6 @@ $lastScan = $recentValidations[0]['confirmed_at'] ?? null;
                                 <input type="text" name="claim_input" placeholder="e.g. STD-8924 or claim token" required>
                                 <button type="submit">Verify</button>
                             </form>
-                        </div>
-
-                        <div class="side-card">
-                            <h3>Session Stats</h3>
-                            <div class="stat-row"><span>Successful Scans</span><span><?= (int)$_SESSION['scan_stats']['scans'] ?></span></div>
-                            <div class="stat-row"><span>Manual Entries</span><span><?= (int)$_SESSION['scan_stats']['manual'] ?></span></div>
-                            <div class="stat-row"><span>Last Scan</span><span><?= htmlspecialchars(timeAgoText($lastScan)) ?></span></div>
                         </div>
                     </div>
                 </div>
