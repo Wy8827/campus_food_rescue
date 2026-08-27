@@ -245,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "INSERT INTO claim_tokens
             (
                 claim_id,
-                token_hash,
+                token_string,
                 expires_at
             )
             VALUES (?, ?, ?)"

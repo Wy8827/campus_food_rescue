@@ -196,10 +196,10 @@ INSERT INTO `claim` (`claim_id`, `listing_id`, `student_id`, `portion_claimed`, 
 
 -- --------------------------------------------------------
 -- Table structure for table `claim_tokens`
--- IMPROVEMENT: raw token replaced with SHA-256 hash column.
+-- IMPROVEMENT: raw token replaced with SHA-256 hash in token_string.
 -- Your PHP backend must hash the token BEFORE comparing:
 --   $hash = hash('sha256', $submittedToken);
---   SELECT * FROM claim_tokens WHERE token_hash = ? AND claim_id = ?;
+--   SELECT * FROM claim_tokens WHERE token_string = ? AND claim_id = ?;
 -- The values below are SHA2() of the original demo tokens, purely
 -- to demonstrate the storage format — treat them as opaque.
 -- --------------------------------------------------------
@@ -207,13 +207,13 @@ INSERT INTO `claim` (`claim_id`, `listing_id`, `student_id`, `portion_claimed`, 
 CREATE TABLE `claim_tokens` (
   `token_id` int(11) NOT NULL,
   `claim_id` int(11) NOT NULL,
-  `token_hash` char(64) NOT NULL,
+  `token_string` char(64) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `expires_at` datetime NOT NULL,
   `used_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `claim_tokens` (`token_id`, `claim_id`, `token_hash`, `created_at`, `expires_at`, `used_at`) VALUES
+INSERT INTO `claim_tokens` (`token_id`, `claim_id`, `token_string`, `created_at`, `expires_at`, `used_at`) VALUES
 (1, 1, SHA2('f8a6db00518ef9bd21d4f2dbe6309968e1168c3e2412623138324d3b1fae405b', 256), '2026-08-16 01:12:43', '2026-08-16 01:22:43', NULL),
 (2, 2, SHA2('159a7d66004d8a8f89eb0f73a3d88f2620306e7df53012cbb791b3e610d0f962', 256), '2026-08-16 01:13:43', '2026-08-16 01:23:43', NULL),
 (3, 3, SHA2('9c0758b64130b2324c8259185f136efc898362edd78fd9d7e00331bdcf9b0ba5', 256), '2026-08-15 23:17:43', '2026-08-15 23:27:43', '2026-08-15 23:22:43'),
@@ -425,7 +425,7 @@ ALTER TABLE `claim`
 ALTER TABLE `claim_tokens`
   ADD PRIMARY KEY (`token_id`),
   ADD UNIQUE KEY `uq_token_claim` (`claim_id`),
-  ADD UNIQUE KEY `uq_token_hash` (`token_hash`);
+  ADD UNIQUE KEY `uq_token_string` (`token_string`);
 
 --
 -- Indexes for table `impact_record`

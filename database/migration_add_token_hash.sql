@@ -1,5 +1,5 @@
 -- ============================================================================
--- DATABASE MIGRATION: Add token_hash column to claim_tokens table
+-- DATABASE MIGRATION: Use token_string for SHA-256 token hashes
 -- ============================================================================
 -- 
 -- INSTRUCTIONS:
@@ -9,21 +9,27 @@
 -- 4. Copy and paste this entire script
 -- 5. Click "Go" to execute
 --
--- This migration:
--- - Adds the token_hash column if it doesn't exist
--- - Creates a UNIQUE index for token_hash for fast lookups
--- - Token hashes are SHA-256 (64 characters)
+-- Run this migration on the current table shown in phpMyAdmin. It replaces
+-- the entire token_string column with hashes of predictable 6-character
+-- hexadecimal test tokens and keeps token_string as the application column.
 --
 -- ============================================================================
 
--- Check if column exists before adding (MySQL 5.7+)
-ALTER TABLE claim_tokens
-ADD COLUMN IF NOT EXISTS token_hash CHAR(64) NOT NULL;
+START TRANSACTION;
 
--- Add unique constraint for token_hash if it doesn't exist
--- Note: If this fails because an index already exists, that's OK
+UPDATE claim_tokens
+SET token_string = SHA2(UPPER(LPAD(HEX(token_id), 6, '0')), 256);
+
 ALTER TABLE claim_tokens
-ADD UNIQUE KEY IF NOT EXISTS uq_claim_token_hash (token_hash);
+	MODIFY token_string CHAR(64) NOT NULL;
+
+ALTER TABLE claim_tokens
+	DROP COLUMN token_hash;
+
+ALTER TABLE claim_tokens
+	ADD UNIQUE KEY uq_claim_token_string (token_string);
+
+COMMIT;
 
 -- Verify table structure
 DESCRIBE claim_tokens;
@@ -35,7 +41,7 @@ DESCRIBE claim_tokens;
 -- ----                | ----      | ---- | --- | ------- | -----
 -- token_id            | int       | NO   | PRI | NULL    | auto_increment
 -- claim_id            | int       | NO   |     | NULL    |
--- token_hash          | char(64)  | NO   | UNI | NULL    |
+-- token_string        | char(64)  | NO   | UNI | NULL    |
 -- expires_at          | datetime  | NO   |     | NULL    |
 -- created_at          | datetime  | YES  |     | NULL    |
 --
