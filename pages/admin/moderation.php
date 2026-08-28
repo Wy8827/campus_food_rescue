@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
     $action = $_POST['action'];
     $targetId = (int)$_POST['id'];
     $type = $_POST['type'];
-    $adminId = $_SESSION['user_id'] ?? 1; // Fallback to 1 if session is not fully set
+    $adminId = $_SESSION['user_id'] ?? 1;
 
     try {
         if ($type === 'food') {
@@ -39,22 +39,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
         } elseif ($type === 'provider') {
             // Provider Registration Moderation Logic
             $newStatus = ($action === 'approve') ? 'active' : 'suspended';
-            $logAction = ($action === 'approve') ? 'approved' : 'suspended';
+            $logAction = ($action === 'approve') ? 'approve_provider' : 'reject_provider';
 
+            // 1. update Provider status
             $updateQ = "UPDATE provider SET provider_status = ? WHERE provider_id = ?";
             $stmt = mysqli_prepare($conn, $updateQ);
             mysqli_stmt_bind_param($stmt, "si", $newStatus, $targetId);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
 
-            $logQ = "INSERT INTO provider_audit_log (admin_id, provider_id, action_type, reason) VALUES (?, ?, ?, 'Processed via List Moderation')";
+            // 2. check if provider related user_id and store name for logging
+            $getUserQ = "SELECT user_id, provider_name FROM provider WHERE provider_id = ?";
+            $stmtUser = mysqli_prepare($conn, $getUserQ);
+            mysqli_stmt_bind_param($stmtUser, "i", $targetId);
+            mysqli_stmt_execute($stmtUser);
+            $resUser = mysqli_stmt_get_result($stmtUser);
+            $providerData = mysqli_fetch_assoc($resUser);
+            $targetUserId = $providerData['user_id'] ?? $targetId;
+            $providerName = $providerData['provider_name'] ?? 'Provider';
+            mysqli_stmt_close($stmtUser);
+
+            // 3. write into user_audit_log
+            $noteText = "Provider registration " . ($action === 'approve' ? 'approved' : 'rejected') . " for " . $providerName;
+            $logQ = "INSERT INTO user_audit_log (admin_id, affected_user_id, action_type, notes) VALUES (?, ?, ?, ?)";
             $stmtLog = mysqli_prepare($conn, $logQ);
-            mysqli_stmt_bind_param($stmtLog, "iis", $adminId, $targetId, $logAction);
+            mysqli_stmt_bind_param($stmtLog, "iiss", $adminId, $targetUserId, $logAction, $noteText);
             mysqli_stmt_execute($stmtLog);
             mysqli_stmt_close($stmtLog);
         }
         
-        // Redirect to prevent form resubmission on refresh, maintaining the current view
+        // Redirect to prevent form resubmission on refresh
         header("Location: ?view=" . $currentView);
         exit;
     } catch (Exception $e) {
@@ -68,14 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
 $allCategories = [];
 
 if ($currentView === 'food') {
-    // Fetch all available tags to dynamically populate the Category dropdown filter
     $tagListQuery = "SELECT DISTINCT tag_name FROM food_tags ORDER BY tag_name ASC";
     $tagListResult = mysqli_query($conn, $tagListQuery);
     if ($tagListResult) {
         $allCategories = mysqli_fetch_all($tagListResult, MYSQLI_ASSOC);
     }
 
-    // Fetch pending food listings
     $query = "
         SELECT 
             f.listing_id, f.food_name, f.description, f.total_quantity, 
@@ -90,7 +102,6 @@ if ($currentView === 'food') {
     $result = mysqli_query($conn, $query);
     $items = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
-    // Helper function to fetch assigned tags for a specific listing
     function getListingTags($conn, $listingId) {
         $tagQuery = "SELECT t.tag_name FROM food_tags t JOIN food_listing_tags flt ON t.tag_id = flt.tag_id WHERE flt.listing_id = ?";
         $stmt = mysqli_prepare($conn, $tagQuery);
@@ -102,7 +113,6 @@ if ($currentView === 'food') {
         return array_column($tags, 'tag_name');
     }
 } else {
-    // Fetch pending provider registrations
     $query = "
         SELECT 
             provider_id, provider_name, contact_number, location, 
@@ -128,7 +138,6 @@ if ($currentView === 'food') {
     <script nomodule src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.js"></script>
     <title>List Moderation</title>
     <style>
-        /* Styles for the View Toggle Buttons */
         .view-tabs {
             margin-top: 20px;
             display: flex;
@@ -164,7 +173,6 @@ if ($currentView === 'food') {
             color: #98A2B3;
             font-size: 48px;
         }
-        /* Empty state styling when filters yield zero results */
         .no-filter-match {
             display: none;
             text-align: center;
@@ -177,7 +185,6 @@ if ($currentView === 'food') {
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar Navigation -->
         <?php include '../../includes/sidebar.php'; ?>
 
         <div class="main-content">
@@ -195,16 +202,13 @@ if ($currentView === 'food') {
                     </div>
                 <?php endif; ?>
 
-                <!-- View Toggle Tabs -->
                 <div class="view-tabs">
                     <a href="?view=food" class="tab-btn <?= $currentView === 'food' ? 'active' : '' ?>">Food Listings</a>
                     <a href="?view=provider" class="tab-btn <?= $currentView === 'provider' ? 'active' : '' ?>">Provider Registrations</a>
                 </div>
 
-                <!-- Functional Filter Toolbar (Only displayed for Food Listings) -->
                 <div class="toolbar-container" <?= $currentView === 'provider' ? 'style="display:none;"' : '' ?>>
                     <div class="selection-container">
-                        <!-- Category Filter Dropdown -->
                         <select id="categoryFilter" class="filter-select">
                             <option value="all">Category: All</option>
                             <?php if (!empty($allCategories)): ?>
@@ -214,13 +218,11 @@ if ($currentView === 'food') {
                                     </option>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <!-- Fallback default options if no tags exist in database yet -->
                                 <option value="vegetarian">Vegetarian</option>
                                 <option value="fruit">Fruit</option>
                             <?php endif; ?>
                         </select>
 
-                        <!-- Urgency Filter Dropdown -->
                         <select id="urgencyFilter" class="filter-select">
                             <option value="all">Urgency: All</option>
                             <option value="high">High (&le; 24 Hours)</option>
@@ -229,16 +231,13 @@ if ($currentView === 'food') {
                         </select>
                     </div>
 
-                    <!-- View Toggle Buttons -->
                     <div class="view-toggle-buttons">
                         <button type="button" class="toggle-btn" id="listViewBtn"><ion-icon name="list-outline"></ion-icon></button>
                         <button type="button" class="toggle-btn active" id="gridViewBtn"><ion-icon name="grid-outline"></ion-icon></button>
                     </div>
                 </div>
 
-                <!-- Moderation Card List -->
                 <ul class="moderation-list" id="moderationList">
-                    <!-- Dynamic message when filter conditions match nothing -->
                     <li id="noFilterMatchMessage" class="no-filter-match">
                         No pending listings match the selected filter criteria.
                     </li>
@@ -251,13 +250,11 @@ if ($currentView === 'food') {
                         <?php foreach($items as $item): ?>
 
                             <?php if ($currentView === 'food'): 
-                                // FOOD CARD LOGIC & RENDERING
                                 $tags = getListingTags($conn, $item['listing_id']);
                                 $expiryTime = strtotime($item['expires_at']);
                                 $timeDiff = $expiryTime - time();
                                 $isUrgent = ($timeDiff < 86400);
 
-                                // Classify urgency level for Javascript filtering
                                 if ($timeDiff <= 86400) {
                                     $urgencyLevel = 'high';
                                 } elseif ($timeDiff <= 172800) {
@@ -266,7 +263,6 @@ if ($currentView === 'food') {
                                     $urgencyLevel = 'low';
                                 }
 
-                                // Format expiration display text
                                 if ($timeDiff <= 0) {
                                     $expiresText = "Expired";
                                 } elseif ($timeDiff < 3600) {
@@ -282,11 +278,8 @@ if ($currentView === 'food') {
                                 }
 
                                 $imagePath = $item['image'] ? UPLOAD_URL . htmlspecialchars($item['image']) : '../../assets/images/placeholder.jpg';
-                                
-                                // Prepare lowercase comma-separated tags for HTML dataset
                                 $tagDataString = strtolower(implode(',', $tags));
                             ?>
-                                <!-- Food card with filter attributes attached -->
                                 <li class="moderation-list-item food-item-card" 
                                     data-tags="<?= htmlspecialchars($tagDataString) ?>" 
                                     data-urgency="<?= $urgencyLevel ?>">
@@ -328,9 +321,7 @@ if ($currentView === 'food') {
                                     </article>
                                 </li>
 
-                            <?php else: 
-                                // PROVIDER CARD RENDERING
-                            ?>
+                            <?php else: ?>
                                 <li class="moderation-list-item">
                                     <article class="listing-card">
                                         <div class="food-image-container">
@@ -365,7 +356,6 @@ if ($currentView === 'food') {
                                         </div>
                                     </article>
                                 </li>
-
                             <?php endif; ?>
 
                         <?php endforeach; ?>
@@ -375,7 +365,6 @@ if ($currentView === 'food') {
         </div>
     </div>
 
-    <!-- Interactive Filtering & Layout JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const categorySelect = document.getElementById('categoryFilter');
@@ -383,7 +372,6 @@ if ($currentView === 'food') {
             const foodCards = document.querySelectorAll('.food-item-card');
             const noMatchMsg = document.getElementById('noFilterMatchMessage');
 
-            // Function to filter listings based on selected Category and Urgency
             function applyFilters() {
                 if (!categorySelect || !urgencySelect) return;
 
@@ -395,13 +383,9 @@ if ($currentView === 'food') {
                     const cardTags = (card.getAttribute('data-tags') || '').split(',').map(t => t.trim());
                     const cardUrgency = (card.getAttribute('data-urgency') || '').trim();
 
-                    // Evaluate category condition
                     const matchesCategory = (selectedCategory === 'all') || cardTags.includes(selectedCategory);
-
-                    // Evaluate urgency condition
                     const matchesUrgency = (selectedUrgency === 'all') || (cardUrgency === selectedUrgency);
 
-                    // Toggle card visibility
                     if (matchesCategory && matchesUrgency) {
                         card.style.display = '';
                         visibleCount++;
@@ -410,7 +394,6 @@ if ($currentView === 'food') {
                     }
                 });
 
-                // Display empty state message if no cards match current filter criteria
                 if (noMatchMsg) {
                     if (visibleCount === 0 && foodCards.length > 0) {
                         noMatchMsg.style.display = 'block';
@@ -420,13 +403,11 @@ if ($currentView === 'food') {
                 }
             }
 
-            // Attach event listeners to filter dropdowns
             if (categorySelect && urgencySelect) {
                 categorySelect.addEventListener('change', applyFilters);
                 urgencySelect.addEventListener('change', applyFilters);
             }
 
-            // Handle Grid vs List View toggle buttons
             const listViewBtn = document.getElementById('listViewBtn');
             const gridViewBtn = document.getElementById('gridViewBtn');
             const moderationList = document.getElementById('moderationList');
