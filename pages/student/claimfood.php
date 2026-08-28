@@ -384,7 +384,7 @@ if (!$listing) {
 }
 
 $imagePath = !empty($listing['image'])
-    ? '../../' . ltrim($listing['image'], '/')
+    ? UPLOAD_URL . rawurlencode(basename($listing['image']))
     : '../../assets/images/logo.png';
 ?>
 
