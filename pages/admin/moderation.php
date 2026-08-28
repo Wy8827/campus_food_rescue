@@ -65,7 +65,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
 // ==========================================
 // 3. Fetch Data Based on Current View
 // ==========================================
+$allCategories = [];
+
 if ($currentView === 'food') {
+    // Fetch all available tags to dynamically populate the Category dropdown filter
+    $tagListQuery = "SELECT DISTINCT tag_name FROM food_tags ORDER BY tag_name ASC";
+    $tagListResult = mysqli_query($conn, $tagListQuery);
+    if ($tagListResult) {
+        $allCategories = mysqli_fetch_all($tagListResult, MYSQLI_ASSOC);
+    }
+
     // Fetch pending food listings
     $query = "
         SELECT 
@@ -81,7 +90,7 @@ if ($currentView === 'food') {
     $result = mysqli_query($conn, $query);
     $items = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
-    // Helper function for tags
+    // Helper function to fetch assigned tags for a specific listing
     function getListingTags($conn, $listingId) {
         $tagQuery = "SELECT t.tag_name FROM food_tags t JOIN food_listing_tags flt ON t.tag_id = flt.tag_id WHERE flt.listing_id = ?";
         $stmt = mysqli_prepare($conn, $tagQuery);
@@ -119,7 +128,7 @@ if ($currentView === 'food') {
     <script nomodule src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.js"></script>
     <title>List Moderation</title>
     <style>
-        /* New Styles for the View Toggle Buttons */
+        /* Styles for the View Toggle Buttons */
         .view-tabs {
             margin-top: 20px;
             display: flex;
@@ -155,11 +164,20 @@ if ($currentView === 'food') {
             color: #98A2B3;
             font-size: 48px;
         }
+        /* Empty state styling when filters yield zero results */
+        .no-filter-match {
+            display: none;
+            text-align: center;
+            width: 100%;
+            color: #6B7280;
+            padding: 40px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- sidebar on the left -->
+        <!-- Sidebar Navigation -->
         <?php include '../../includes/sidebar.php'; ?>
 
         <div class="main-content">
@@ -183,29 +201,48 @@ if ($currentView === 'food') {
                     <a href="?view=provider" class="tab-btn <?= $currentView === 'provider' ? 'active' : '' ?>">Provider Registrations</a>
                 </div>
 
-                <!-- Existing Toolbar (Only show filters if looking at food) -->
+                <!-- Functional Filter Toolbar (Only displayed for Food Listings) -->
                 <div class="toolbar-container" <?= $currentView === 'provider' ? 'style="display:none;"' : '' ?>>
                     <div class="selection-container">
-                        <select class="filter-select">
+                        <!-- Category Filter Dropdown -->
+                        <select id="categoryFilter" class="filter-select">
                             <option value="all">Category: All</option>
-                            <option value="vegetarian">Vegetarian</option>
-                            <option value="fruit">Fruit</option>
+                            <?php if (!empty($allCategories)): ?>
+                                <?php foreach ($allCategories as $cat): ?>
+                                    <option value="<?= htmlspecialchars(strtolower($cat['tag_name'])) ?>">
+                                        <?= htmlspecialchars($cat['tag_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <!-- Fallback default options if no tags exist in database yet -->
+                                <option value="vegetarian">Vegetarian</option>
+                                <option value="fruit">Fruit</option>
+                            <?php endif; ?>
                         </select>
-                        <select class="filter-select">
-                            <option value="urgency">Urgency: All</option>
-                            <option value="high">High (Today)</option>
-                            <option value="medium">Medium (Tomorrow)</option>
-                            <option value="low">Low (Later)</option>
+
+                        <!-- Urgency Filter Dropdown -->
+                        <select id="urgencyFilter" class="filter-select">
+                            <option value="all">Urgency: All</option>
+                            <option value="high">High (&le; 24 Hours)</option>
+                            <option value="medium">Medium (1 - 2 Days)</option>
+                            <option value="low">Low (&gt; 2 Days)</option>
                         </select>
                     </div>
+
+                    <!-- View Toggle Buttons -->
                     <div class="view-toggle-buttons">
-                        <button class="toggle-btn"><ion-icon name="list-outline"></ion-icon></button>
-                        <button class="toggle-btn active"><ion-icon name="grid-outline"></ion-icon></button>
+                        <button type="button" class="toggle-btn" id="listViewBtn"><ion-icon name="list-outline"></ion-icon></button>
+                        <button type="button" class="toggle-btn active" id="gridViewBtn"><ion-icon name="grid-outline"></ion-icon></button>
                     </div>
                 </div>
 
-                <!-- Shared Moderation List using your exact CSS classes -->
-                <ul class="moderation-list">
+                <!-- Moderation Card List -->
+                <ul class="moderation-list" id="moderationList">
+                    <!-- Dynamic message when filter conditions match nothing -->
+                    <li id="noFilterMatchMessage" class="no-filter-match">
+                        No pending listings match the selected filter criteria.
+                    </li>
+
                     <?php if (empty($items)): ?>
                         <p style="text-align: center; width: 100%; color: #6B7280; padding: 40px;">
                             No pending <?= $currentView === 'food' ? 'listings' : 'registrations' ?> to review right now. Great job!
@@ -214,12 +251,22 @@ if ($currentView === 'food') {
                         <?php foreach($items as $item): ?>
 
                             <?php if ($currentView === 'food'): 
-                                // FOOD CARD RENDERING
+                                // FOOD CARD LOGIC & RENDERING
                                 $tags = getListingTags($conn, $item['listing_id']);
                                 $expiryTime = strtotime($item['expires_at']);
                                 $timeDiff = $expiryTime - time();
                                 $isUrgent = ($timeDiff < 86400);
 
+                                // Classify urgency level for Javascript filtering
+                                if ($timeDiff <= 86400) {
+                                    $urgencyLevel = 'high';
+                                } elseif ($timeDiff <= 172800) {
+                                    $urgencyLevel = 'medium';
+                                } else {
+                                    $urgencyLevel = 'low';
+                                }
+
+                                // Format expiration display text
                                 if ($timeDiff <= 0) {
                                     $expiresText = "Expired";
                                 } elseif ($timeDiff < 3600) {
@@ -233,9 +280,16 @@ if ($currentView === 'food') {
                                     $hours = floor(($timeDiff % 86400) / 3600);
                                     $expiresText = "Expires in " . $days . "d" . ($hours > 0 ? " " . $hours . "h" : "");
                                 }
+
                                 $imagePath = $item['image'] ? UPLOAD_URL . htmlspecialchars($item['image']) : '../../assets/images/placeholder.jpg';
+                                
+                                // Prepare lowercase comma-separated tags for HTML dataset
+                                $tagDataString = strtolower(implode(',', $tags));
                             ?>
-                                <li class="moderation-list-item">
+                                <!-- Food card with filter attributes attached -->
+                                <li class="moderation-list-item food-item-card" 
+                                    data-tags="<?= htmlspecialchars($tagDataString) ?>" 
+                                    data-urgency="<?= $urgencyLevel ?>">
                                     <article class="listing-card">
                                         <div class="food-image-container">
                                             <img src="<?= $imagePath ?>" alt="Food Image" class="food-image">
@@ -279,7 +333,6 @@ if ($currentView === 'food') {
                             ?>
                                 <li class="moderation-list-item">
                                     <article class="listing-card">
-                                        <!-- Using a placeholder icon instead of a food image for vendors -->
                                         <div class="food-image-container">
                                             <div class="provider-icon-placeholder">
                                                 <ion-icon name="storefront-outline"></ion-icon>
@@ -298,7 +351,6 @@ if ($currentView === 'food') {
                                             <div class="meta-details">
                                                 <span class="detail-text">📞 <?= htmlspecialchars($item['contact_number']) ?> • 🕒 <?= htmlspecialchars($item['operating_hours']) ?></span>
                                             </div>
-                                            <!-- Provider request notes displayed in italics -->
                                             <p style="font-size: 13px; color:#475467; margin:0 0 12px 0; font-style:italic;">
                                                 "<?= htmlspecialchars($item['request_note'] ?? 'No additional notes provided.') ?>"
                                             </p>
@@ -306,7 +358,6 @@ if ($currentView === 'food') {
                                             <form method="POST" action="" class="action-buttons" style="margin: 0; padding: 0;">
                                                 <input type="hidden" name="type" value="provider">
                                                 <input type="hidden" name="id" value="<?= $item['provider_id'] ?>">
-                                                <!-- Reusing the exact same button classes -->
                                                 <button type="submit" name="action" value="approve" class="approve-button">Approve</button>
                                                 <button type="submit" name="action" value="reject" class="reject-button">Reject</button>
                                                 <button type="button" class="flag-icon-btn"><ion-icon name="alert-circle-outline"></ion-icon></button>
@@ -323,5 +374,77 @@ if ($currentView === 'food') {
             </div>
         </div>
     </div>
+
+    <!-- Interactive Filtering & Layout JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const categorySelect = document.getElementById('categoryFilter');
+            const urgencySelect = document.getElementById('urgencyFilter');
+            const foodCards = document.querySelectorAll('.food-item-card');
+            const noMatchMsg = document.getElementById('noFilterMatchMessage');
+
+            // Function to filter listings based on selected Category and Urgency
+            function applyFilters() {
+                if (!categorySelect || !urgencySelect) return;
+
+                const selectedCategory = categorySelect.value.toLowerCase().trim();
+                const selectedUrgency = urgencySelect.value.toLowerCase().trim();
+                let visibleCount = 0;
+
+                foodCards.forEach(card => {
+                    const cardTags = (card.getAttribute('data-tags') || '').split(',').map(t => t.trim());
+                    const cardUrgency = (card.getAttribute('data-urgency') || '').trim();
+
+                    // Evaluate category condition
+                    const matchesCategory = (selectedCategory === 'all') || cardTags.includes(selectedCategory);
+
+                    // Evaluate urgency condition
+                    const matchesUrgency = (selectedUrgency === 'all') || (cardUrgency === selectedUrgency);
+
+                    // Toggle card visibility
+                    if (matchesCategory && matchesUrgency) {
+                        card.style.display = '';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                // Display empty state message if no cards match current filter criteria
+                if (noMatchMsg) {
+                    if (visibleCount === 0 && foodCards.length > 0) {
+                        noMatchMsg.style.display = 'block';
+                    } else {
+                        noMatchMsg.style.display = 'none';
+                    }
+                }
+            }
+
+            // Attach event listeners to filter dropdowns
+            if (categorySelect && urgencySelect) {
+                categorySelect.addEventListener('change', applyFilters);
+                urgencySelect.addEventListener('change', applyFilters);
+            }
+
+            // Handle Grid vs List View toggle buttons
+            const listViewBtn = document.getElementById('listViewBtn');
+            const gridViewBtn = document.getElementById('gridViewBtn');
+            const moderationList = document.getElementById('moderationList');
+
+            if (listViewBtn && gridViewBtn && moderationList) {
+                listViewBtn.addEventListener('click', function () {
+                    listViewBtn.classList.add('active');
+                    gridViewBtn.classList.remove('active');
+                    moderationList.classList.add('list-view');
+                });
+
+                gridViewBtn.addEventListener('click', function () {
+                    gridViewBtn.classList.add('active');
+                    listViewBtn.classList.remove('active');
+                    moderationList.classList.remove('list-view');
+                });
+            }
+        });
+    </script>
 </body>
 </html>
