@@ -113,41 +113,95 @@ html, body {
 
 /* mobile styles */
 @media (max-width: 768px) {
+    /* 1. 解决遮挡：主内容区顶部让出 56px 高度 */
+    .main-content {
+        margin-left: 0 !important;
+        padding-top: 56px !important;   /* 预留高度，确保 Page Title 完整露出 */
+        padding-bottom: 70px !important; /* 底部导航栏空间 */
+    }
+
     .topbar-container {
         width: 100% !important;
         margin-left: 0 !important;
         left: 0 !important;
         top: 0 !important;
+        z-index: 99 !important;
     }
 
+    /* 2. 单行横向容器 */
     .topbar {
         width: 100% !important;
-        height: auto !important;
-        min-height: 56px;
-        padding: 8px 12px !important;
-        gap: 15px !important;
-        flex-wrap: wrap; 
-        justify-content: space-between !important;
-    }
-
-    .topbar-left {
-        display: flex !important; 
-        align-items: center !important;
-        gap: 12px !important;
-    }
-
-    .profile-pic .profile-text {
+        height: 64px !important;        /* 大幅调低高度 */
+        min-height: 50px !important;
+        padding: 0 10px !important;
         display: flex !important;
+        flex-direction: row !important;  /* 强制同一行 */
+        flex-wrap: nowrap !important;   /* 严禁换行 */
+        align-items: center !important;
+        justify-content: space-between !important;
+        border-bottom: 1px solid #E5E7EB !important;
+    }
+
+    /* 左侧：Logo + App 名称 */
+    .topbar-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .topbar-left img {
+        width: 30px !important;
+        height: 30px !important;
+        margin-left: 0 !important;
+    }
+
+    .topbar-title {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        white-space: nowrap !important;
+    }
+
+    /* 右侧：头像 + 用户名 + Logout 按钮（挨在一起） */
+    .topbar-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin-left: auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    .profile-pic {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        text-decoration: none !important;
+    }
+
+    .avatar {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 16px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .topbar .user-name {
+        display: block !important;
         font-size: 14px !important;
-        flex-direction: row !important; 
+        font-weight: 600 !important;
+        color: #111827 !important;
+        white-space: nowrap !important;
     }
 
     .logout-btn {
-        width: 100px !important;
-        height: 34px !important;
-        padding: 5px 24px !important;
-        margin-right: 0 !important;
-        font-size: 14px;
-        border: none;
+        width: auto !important;
+        height: 24px !important;
+        padding: 0 10px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        border-radius: 4px !important;
+        line-height: 24px !important;
+        flex-shrink: 0 !important;
     }
 }
