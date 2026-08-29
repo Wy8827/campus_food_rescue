@@ -11,10 +11,10 @@ $errorMsg = '';
 $successMsg = '';
 
 // ==========================================
-// 2. Handle Approve / Reject / Flag Submissions
+// 2. Handle Approve / Reject Submissions
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['type'], $_POST['id'])) {
-    $action = $_POST['action']; // 'approve', 'reject', or 'flag'
+    $action = $_POST['action']; // 'approve' or 'reject'
     $targetId = (int)$_POST['id'];
     $type = $_POST['type']; // 'food' or 'provider'
     $reason = trim($_POST['reason'] ?? '');
@@ -31,10 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
                 $newStatus = 'removed';
                 $logAction = 'reject_listing';
                 $noteText = !empty($reason) ? "Rejected reason: " . $reason : "Listing rejected by administrator.";
-            } elseif ($action === 'flag') {
-                $newStatus = 'flagged';
-                $logAction = 'flag_listing';
-                $noteText = !empty($reason) ? "Flagged issue: " . $reason : "Listing flagged for review.";
             }
 
             // Update food listing status
@@ -61,10 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
                 $newStatus = 'suspended';
                 $logAction = 'reject_provider';
                 $actionDesc = 'rejected' . (!empty($reason) ? " (Reason: $reason)" : "");
-            } elseif ($action === 'flag') {
-                $newStatus = 'flagged';
-                $logAction = 'flag_provider';
-                $actionDesc = 'flagged' . (!empty($reason) ? " (Note: $reason)" : "");
             }
 
             // 1. Update Provider status
@@ -89,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
             $noteText = "Provider registration " . $actionDesc . " for " . $providerName;
             $logQ = "INSERT INTO user_audit_log (admin_id, affected_user_id, action_type, notes) VALUES (?, ?, ?, ?)";
             $stmtLog = mysqli_prepare($conn, $logQ);
-            mysqli_stmt_bind_param($stmtLog, "iis", $adminId, $targetId, $logAction);
+            mysqli_stmt_bind_param($stmtLog, "iiss", $adminId, $targetUserId, $logAction, $noteText);
             mysqli_stmt_execute($stmtLog);
             mysqli_stmt_close($stmtLog);
         }
@@ -107,6 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
 // ==========================================
 $allCategories = [];
 if ($currentView === 'food') {
+    $tagListQuery = "SELECT DISTINCT tag_name FROM food_tags ORDER BY tag_name ASC";
+    $tagListResult = mysqli_query($conn, $tagListQuery);
+    if ($tagListResult) {
+        $allCategories = mysqli_fetch_all($tagListResult, MYSQLI_ASSOC);
+    }
+
     // Fetch pending food listings
     $query = "
         SELECT 
@@ -165,7 +163,7 @@ if ($currentView === 'food') {
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- sidebar on the left -->
+        <!-- Sidebar Navigation -->
         <?php include '../../includes/sidebar.php'; ?>
         <div class="main-content">
             <div class="topbar-container">
@@ -173,7 +171,7 @@ if ($currentView === 'food') {
             </div>
             <div class="content-container">
                 <h1 class="page-title">Listing Moderation</h1>
-                <p class="page-subtitle">Approve, reject, or flag incoming requests. Ensure quality and safety standards before publishing.</p>
+                <p class="page-subtitle">Approve or reject incoming requests. Ensure quality and safety standards before publishing.</p>
 
                 <?php if(!empty($errorMsg)): ?>
                     <div style="color: #721c24; background-color: #f8d7da; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
@@ -187,13 +185,21 @@ if ($currentView === 'food') {
                     <a href="?view=provider" class="tab-btn <?= $currentView === 'provider' ? 'active' : '' ?>">Provider Registrations</a>
                 </div>
 
-                <!-- Existing Toolbar (Only show filters if looking at food) -->
+                <!-- Toolbar (Only for food listings) -->
                 <div class="toolbar-container" <?= $currentView === 'provider' ? 'style="display:none;"' : '' ?>>
                     <div class="selection-container">
-                        <select class="filter-select">
+                        <select id="categoryFilter" class="filter-select">
                             <option value="all">Category: All</option>
-                            <option value="vegetarian">Vegetarian</option>
-                            <option value="fruit">Fruit</option>
+                            <?php if (!empty($allCategories)): ?>
+                                <?php foreach ($allCategories as $cat): ?>
+                                    <option value="<?= htmlspecialchars(strtolower($cat['tag_name'])) ?>">
+                                        <?= htmlspecialchars($cat['tag_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="vegetarian">Vegetarian</option>
+                                <option value="fruit">Fruit</option>
+                            <?php endif; ?>
                         </select>
                         <select id="urgencyFilter" class="filter-select">
                             <option value="all">Urgency: All</option>
@@ -203,13 +209,16 @@ if ($currentView === 'food') {
                         </select>
                     </div>
                     <div class="view-toggle-buttons">
-                        <button class="toggle-btn"><ion-icon name="list-outline"></ion-icon></button>
-                        <button class="toggle-btn active"><ion-icon name="grid-outline"></ion-icon></button>
+                        <button type="button" class="toggle-btn" id="listViewBtn"><ion-icon name="list-outline"></ion-icon></button>
+                        <button type="button" class="toggle-btn active" id="gridViewBtn"><ion-icon name="grid-outline"></ion-icon></button>
                     </div>
                 </div>
 
-                <!-- Shared Moderation List using your exact CSS classes -->
-                <ul class="moderation-list">
+                <ul class="moderation-list" id="moderationList">
+                    <li id="noFilterMatchMessage" class="no-filter-match">
+                        No pending listings match the selected filter criteria.
+                    </li>
+
                     <?php if (empty($items)): ?>
                         <p style="text-align: center; width: 100%; color: #6B7280; padding: 40px;">
                             No pending <?= $currentView === 'food' ? 'listings' : 'registrations' ?> to review right now. Great job!
@@ -217,11 +226,18 @@ if ($currentView === 'food') {
                     <?php else: ?>
                         <?php foreach($items as $item): ?>
                             <?php if ($currentView === 'food'): 
-                                // FOOD CARD RENDERING
                                 $tags = getListingTags($conn, $item['listing_id']);
                                 $expiryTime = strtotime($item['expires_at']);
                                 $timeDiff = $expiryTime - time();
                                 $isUrgent = ($timeDiff < 86400);
+
+                                if ($timeDiff <= 86400) {
+                                    $urgencyLevel = 'high';
+                                } elseif ($timeDiff <= 172800) {
+                                    $urgencyLevel = 'medium';
+                                } else {
+                                    $urgencyLevel = 'low';
+                                }
 
                                 if ($timeDiff <= 0) {
                                     $expiresText = "Expired";
@@ -237,8 +253,11 @@ if ($currentView === 'food') {
                                     $expiresText = "Expires in " . $days . "d" . ($hours > 0 ? " " . $hours . "h" : "");
                                 }
                                 $imagePath = $item['image'] ? UPLOAD_URL . htmlspecialchars($item['image']) : '../../assets/images/placeholder.jpg';
+                                $tagDataString = strtolower(implode(',', $tags));
                             ?>
-                                <li class="moderation-list-item">
+                                <li class="moderation-list-item food-item-card" 
+                                    data-tags="<?= htmlspecialchars($tagDataString) ?>" 
+                                    data-urgency="<?= $urgencyLevel ?>">
                                     <article class="listing-card">
                                         <div class="food-image-container">
                                             <img src="<?= $imagePath ?>" alt="Food Image" class="food-image">
@@ -276,11 +295,6 @@ if ($currentView === 'food') {
 
                                                 <!-- Trigger Reject Modal -->
                                                 <button type="button" class="reject-button" onclick="openReasonModal('reject', 'food', <?= $item['listing_id'] ?>, '<?= htmlspecialchars(addslashes($item['food_name'])) ?>')">Reject</button>
-
-                                                <!-- Trigger Flag Modal -->
-                                                <button type="button" class="flag-icon-btn" title="Flag this item" onclick="openReasonModal('flag', 'food', <?= $item['listing_id'] ?>, '<?= htmlspecialchars(addslashes($item['food_name'])) ?>')">
-                                                    <ion-icon name="flag-outline"></ion-icon>
-                                                </button>
                                             </div>
                                         </div>
                                     </article>
@@ -288,7 +302,6 @@ if ($currentView === 'food') {
                             <?php else: ?>
                                 <li class="moderation-list-item">
                                     <article class="listing-card">
-                                        <!-- Using a placeholder icon instead of a food image for vendors -->
                                         <div class="food-image-container">
                                             <div class="provider-icon-placeholder">
                                                 <ion-icon name="storefront-outline"></ion-icon>
@@ -307,7 +320,6 @@ if ($currentView === 'food') {
                                             <div class="meta-details">
                                                 <span class="detail-text"><?= htmlspecialchars($item['contact_number']) ?> &bull; <?= htmlspecialchars($item['operating_hours']) ?></span>
                                             </div>
-                                            <!-- Provider request notes displayed in italics -->
                                             <p style="font-size: 13px; color:#475467; margin:0 0 12px 0; font-style:italic;">
                                                 "<?= htmlspecialchars($item['request_note'] ?? 'No additional notes provided.') ?>"
                                             </p>
@@ -322,16 +334,10 @@ if ($currentView === 'food') {
 
                                                 <!-- Trigger Reject Modal -->
                                                 <button type="button" class="reject-button" onclick="openReasonModal('reject', 'provider', <?= $item['provider_id'] ?>, '<?= htmlspecialchars(addslashes($item['provider_name'])) ?>')">Reject</button>
-
-                                                <!-- Trigger Flag Modal -->
-                                                <button type="button" class="flag-icon-btn" title="Flag this registration" onclick="openReasonModal('flag', 'provider', <?= $item['provider_id'] ?>, '<?= htmlspecialchars(addslashes($item['provider_name'])) ?>')">
-                                                    <ion-icon name="alert-circle-outline"></ion-icon>
-                                                </button>
                                             </div>
                                         </div>
                                     </article>
                                 </li>
-
                             <?php endif; ?>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -341,29 +347,29 @@ if ($currentView === 'food') {
     </div>
 
     <!-- ===================================================== -->
-    <!-- REASON / AUDIT ACTION MODAL (For Reject & Flag)       -->
+    <!-- REASON / AUDIT ACTION MODAL (For Reject Only)         -->
     <!-- ===================================================== -->
     <div id="reasonModal" class="custom-modal-backdrop" onclick="handleReasonBackdropClick(event)">
         <div class="custom-modal-card" style="max-width: 460px;">
             <div class="modal-card-header">
-                <h2 class="modal-card-title" id="reasonModalTitle">Enter Reason</h2>
+                <h2 class="modal-card-title" id="reasonModalTitle">Reject Item</h2>
                 <button type="button" class="modal-close-btn" onclick="closeReasonModal()">&times;</button>
             </div>
             <form method="POST" action="">
-                <input type="hidden" name="action" id="modalAction" value="">
+                <input type="hidden" name="action" id="modalAction" value="reject">
                 <input type="hidden" name="type" id="modalType" value="">
                 <input type="hidden" name="id" id="modalTargetId" value="">
 
                 <div class="modal-card-body">
                     <p id="reasonModalDesc" style="font-size: 13.5px; color: #4B5563; margin-bottom: 12px;"></p>
                     <div class="modal-form-group">
-                        <label class="modal-form-label" id="reasonInputLabel" for="actionReason">Reason / Notes</label>
-                        <textarea name="reason" id="actionReason" class="modal-form-input" rows="4" style="resize: vertical; font-family: inherit;" required></textarea>
+                        <label class="modal-form-label" for="actionReason">Rejection Reason</label>
+                        <textarea name="reason" id="actionReason" class="modal-form-input" rows="4" style="resize: vertical; font-family: inherit;" placeholder="e.g., Incomplete description, expired pickup time..." required></textarea>
                     </div>
                 </div>
                 <div class="modal-card-footer">
                     <button type="button" class="btn-modal-cancel" onclick="closeReasonModal()">Cancel</button>
-                    <button type="submit" id="reasonSubmitBtn" class="btn-modal-submit">Submit</button>
+                    <button type="submit" id="reasonSubmitBtn" class="btn-modal-submit" style="background-color: #DC2626;">Confirm Rejection</button>
                 </div>
             </form>
         </div>

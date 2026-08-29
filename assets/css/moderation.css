@@ -314,3 +314,152 @@
     padding: 40px;
     font-size: 14px;
 }
+
+/* ========================================== */
+/* REASON / AUDIT ACTION MODAL STYLES         */
+/* ========================================== */
+.custom-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(16, 24, 40, 0.6);
+    backdrop-filter: blur(2px);
+    display: none; /* 默认隐藏 */
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    box-sizing: border-box;
+}
+
+/* 当 JS 触发添加 show 类名时显示 */
+.custom-modal-backdrop.show {
+    display: flex !important;
+}
+
+.custom-modal-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 480px;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.modal-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #101828;
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #667085;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.modal-close-btn:hover {
+    background-color: #F2F4F7;
+    color: #1D2939;
+}
+
+.modal-card-body {
+    margin-bottom: 20px;
+}
+
+.modal-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.modal-form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #344054;
+}
+
+.modal-form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #D0D5DD;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #101828;
+    background-color: #FFFFFF;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.modal-form-input:focus {
+    border-color: #385E29;
+    box-shadow: 0 0 0 3px rgba(56, 94, 41, 0.15);
+}
+
+.modal-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-modal-cancel {
+    padding: 8px 16px;
+    background: #FFFFFF;
+    border: 1px solid #D0D5DD;
+    color: #344054;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-modal-cancel:hover {
+    background-color: #F9FAFB;
+}
+
+.btn-modal-submit {
+    padding: 8px 18px;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-modal-submit:hover {
+    opacity: 0.9;
+}

@@ -58,3 +58,46 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+// ==========================================
+// Reject Modal Controls
+// ==========================================
+function openReasonModal(action, type, id, title) {
+    const modal = document.getElementById('reasonModal');
+    if (!modal) return;
+
+    const modalAction = document.getElementById('modalAction');
+    const modalType = document.getElementById('modalType');
+    const modalTargetId = document.getElementById('modalTargetId');
+    const modalTitle = document.getElementById('reasonModalTitle');
+    const modalDesc = document.getElementById('reasonModalDesc');
+    const reasonInput = document.getElementById('actionReason');
+
+    modalAction.value = action;
+    modalType.value = type;
+    modalTargetId.value = id;
+    reasonInput.value = '';
+
+    modalTitle.innerText = `Reject ${type === 'food' ? 'Food Listing' : 'Provider Registration'}`;
+    modalDesc.innerHTML = `Provide a reason for rejecting <strong>${title}</strong>. This will be recorded in the audit log.`;
+
+    modal.classList.add('show');
+    setTimeout(() => reasonInput.focus(), 100);
+}
+
+function closeReasonModal() {
+    const modal = document.getElementById('reasonModal');
+    if (modal) modal.classList.remove('show');
+}
+
+function handleReasonBackdropClick(event) {
+    if (event.target.id === 'reasonModal') {
+        closeReasonModal();
+    }
+}
+
+document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+        closeReasonModal();
+    }
+});
