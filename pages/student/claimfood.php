@@ -116,11 +116,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /*
         |--------------------------------------------------------------------------
-        | Prevent duplicate active claim
+        | Prevent multiple active claims across all listings
         |--------------------------------------------------------------------------
         */
 
-        $duplicateStmt = mysqli_prepare(
+        $activeClaimStmt = mysqli_prepare(
+            $conn,
+            "SELECT claim_id, listing_id, status, reservation_expires_at
+             FROM claim
+             WHERE student_id = ?
+             AND status IN ('pending', 'confirmed')
+             AND reservation_expires_at > NOW()
+             LIMIT 1"
+        );
+
+        if (!$activeClaimStmt) {
+            throw new Exception(
+                'Unable to check existing claims.'
+            );
+        }
+
+        mysqli_stmt_bind_param(
+            $activeClaimStmt,
+            'i',
+            $studentId
+        );
+
+        mysqli_stmt_execute($activeClaimStmt);
+
+        $activeClaimResult = mysqli_stmt_get_result(
+            $activeClaimStmt
+        );
+
+        $activeClaim = mysqli_fetch_assoc(
+            $activeClaimResult
+        );
+
+        mysqli_stmt_close($activeClaimStmt);
+
+        if ($activeClaim) {
+            if ((int) $activeClaim['listing_id'] === $listingId) {
+                throw new Exception(
+                    'You already have an active claim for this food.'
+                );
+            }
+
+            throw new Exception(
+                'You already have an active claim for another food. Please complete or cancel it before making a new claim.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent duplicate historical claim on the same food
+        |--------------------------------------------------------------------------
+        */
+
+        $sameFoodStmt = mysqli_prepare(
             $conn,
             "SELECT claim_id
              FROM claim
@@ -129,34 +181,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              LIMIT 1"
         );
 
-        if (!$duplicateStmt) {
+        if (!$sameFoodStmt) {
             throw new Exception(
-                'Unable to check existing claims.'
+                'Unable to check previous claims.'
             );
         }
 
         mysqli_stmt_bind_param(
-            $duplicateStmt,
+            $sameFoodStmt,
             'ii',
             $listingId,
             $studentId
         );
 
-        mysqli_stmt_execute($duplicateStmt);
+        mysqli_stmt_execute($sameFoodStmt);
 
-        $duplicateResult = mysqli_stmt_get_result(
-            $duplicateStmt
+        $sameFoodResult = mysqli_stmt_get_result(
+            $sameFoodStmt
         );
 
-        $duplicate = mysqli_fetch_assoc(
-            $duplicateResult
+        $sameFoodClaim = mysqli_fetch_assoc(
+            $sameFoodResult
         );
 
-        mysqli_stmt_close($duplicateStmt);
+        mysqli_stmt_close($sameFoodStmt);
 
-        if ($duplicate) {
+        if ($sameFoodClaim) {
             throw new Exception(
-                'You already have an active claim for this food.'
+                'You have already claimed this food before. Please check your claims history.'
             );
         }
 
@@ -561,10 +613,7 @@ $imagePath = !empty($listing['image'])
                             >
 
                                 <?php
-                                $maxPortions = min(
-                                    5,
-                                    (int) $listing['remain_quantity']
-                                );
+                                $maxPortions = (int) $listing['remain_quantity'];
                                 ?>
 
                                 <?php for (

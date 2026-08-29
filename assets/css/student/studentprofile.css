@@ -53,4 +53,12 @@
 .edit-profile-cancel { color: #475569; font-size: 13px; }
 .edit-profile-error { margin-bottom: 16px; padding: 12px; border-radius: 8px; background: #FEF2F2; color: #991B1B; font-size: 13px; border: 1px solid #FCA5A5; }
 @media (max-width: 1000px) { .profile-layout { grid-template-columns: 1fr; } .profile-side { display: grid; grid-template-columns: 1fr 1fr; } }
-@media (max-width: 760px) { .main-content { margin-left: 0; } .content-container { padding: 20px; margin-top: 90px; } .impact-stat-grid, .profile-side { grid-template-columns: 1fr; } .identity-card { align-items: flex-start; flex-wrap: wrap; } .outline-button { margin-left: 0; } }
+@media (max-width: 760px) {
+    html, body { overflow-y: auto !important; height: auto; }
+    .main-content { margin-left: 0; padding-bottom: 100px; min-height: 100vh; }
+    .content-container { padding: 20px 20px 140px; margin-top: 90px; }
+    .impact-stat-grid, .profile-side { grid-template-columns: 1fr; }
+    .identity-card { align-items: flex-start; flex-wrap: wrap; }
+    .outline-button { margin-left: 0; }
+    .profile-card { padding-bottom: 20px; }
+}

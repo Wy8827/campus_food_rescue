@@ -56,4 +56,15 @@
 .claim-form small { color: #64748B; font-size: 12px; }
 .form-error { margin: 14px 0; padding: 12px; border-radius: 8px; background: #FEF2F2; color: #991B1B; font-size: 13px; border: 1px solid #FCA5A5; }
 @media (max-width: 1050px) { .food-listings-container { grid-template-columns: repeat(2, minmax(0,1fr)); } .claim-detail-page { grid-template-columns: 1fr; } }
-@media (max-width: 760px) { .main-content { margin-left: 0; } .content-container { padding: 20px; margin-top: 90px; } .food-filter-bar { flex-wrap: wrap; } .search-input-wrap, .food-filter-bar select, .food-filter-bar .primary-button, .food-filter-bar .clear-filter { width: 100%; min-width: 0; } .search-input-wrap { flex-basis: 100%; } .food-listings-container { grid-template-columns: 1fr; } .page-title { font-size: 24px; } }
+@media (max-width: 760px) {
+    html, body { overflow-y: auto; height: auto; }
+    .main-content { margin-left: 0; padding-bottom: 90px; }
+    .dashboard-container { min-height: 100vh; }
+    .content-container { padding: 20px 20px 120px; margin-top: 90px; }
+    .food-filter-bar { flex-wrap: wrap; }
+    .search-input-wrap, .food-filter-bar select, .food-filter-bar .primary-button, .food-filter-bar .clear-filter { width: 100%; min-width: 0; }
+    .search-input-wrap { flex-basis: 100%; }
+    .food-listings-container { grid-template-columns: 1fr; }
+    .page-title { font-size: 24px; }
+    .claim-detail-page { padding-bottom: 80px; }
+}

@@ -9,6 +9,70 @@ requireRole('student');
 
 $studentId = (int) ($_SESSION['user_id'] ?? 0);
 
+$expiredStmt = mysqli_prepare(
+    $conn,
+    "SELECT claim_id, listing_id, portion_claimed
+     FROM claim
+     WHERE student_id = ?
+       AND status IN ('pending', 'confirmed')
+       AND reservation_expires_at < NOW()"
+);
+
+if ($expiredStmt) {
+    mysqli_stmt_bind_param($expiredStmt, 'i', $studentId);
+    mysqli_stmt_execute($expiredStmt);
+    $expiredClaims = mysqli_fetch_all(mysqli_stmt_get_result($expiredStmt), MYSQLI_ASSOC);
+    mysqli_stmt_close($expiredStmt);
+
+    foreach ($expiredClaims as $claim) {
+        $claimId = (int) $claim['claim_id'];
+        $listingId = (int) $claim['listing_id'];
+        $portion = (int) $claim['portion_claimed'];
+
+        mysqli_begin_transaction($conn);
+
+        try {
+            $updateClaimStmt = mysqli_prepare(
+                $conn,
+                "UPDATE claim
+                 SET status = 'expired'
+                 WHERE claim_id = ?
+                   AND student_id = ?
+                   AND status IN ('pending', 'confirmed')"
+            );
+
+            if (!$updateClaimStmt) {
+                throw new Exception('Unable to expire claim.');
+            }
+
+            mysqli_stmt_bind_param($updateClaimStmt, 'ii', $claimId, $studentId);
+            mysqli_stmt_execute($updateClaimStmt);
+            mysqli_stmt_close($updateClaimStmt);
+
+            $restoreListingStmt = mysqli_prepare(
+                $conn,
+                "UPDATE food_listing
+                 SET remain_quantity = LEAST(total_quantity, remain_quantity + ?)
+                 WHERE listing_id = ?
+                   AND status = 'active'"
+            );
+
+            if (!$restoreListingStmt) {
+                throw new Exception('Unable to restore listing quantity.');
+            }
+
+            mysqli_stmt_bind_param($restoreListingStmt, 'ii', $portion, $listingId);
+            mysqli_stmt_execute($restoreListingStmt);
+            mysqli_stmt_close($restoreListingStmt);
+
+            mysqli_commit($conn);
+        } catch (Throwable $e) {
+            mysqli_rollback($conn);
+            error_log('student expired claim recovery failed: ' . $e->getMessage());
+        }
+    }
+}
+
 /*
 |--------------------------------------------------------------------------
 | Get Claims

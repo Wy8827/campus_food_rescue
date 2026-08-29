@@ -43,4 +43,12 @@
 .history-table td { padding: 14px 16px; border-top: 1px solid #E2E8F0; color: #0F172A; font-size: 13px; }
 .table-empty { text-align: center; padding: 40px !important; color: #64748B !important; font-size: 14px; }
 @media (max-width: 1000px) { .active-claim-grid { grid-template-columns: 200px 1fr; } .impact-mini-card { grid-column: 1 / -1; min-height: 100px; } }
-@media (max-width: 760px) { .main-content { margin-left: 0; } .content-container { padding: 20px; margin-top: 90px; } .active-claim-grid { grid-template-columns: 1fr; } .qr-card { min-height: 280px; } .claim-details { grid-template-columns: 1fr; } .page-title { font-size: 24px; } }
+@media (max-width: 760px) {
+    html, body { overflow-y: auto !important; height: auto; }
+    .main-content { margin-left: 0; padding-bottom: 100px; min-height: 100vh; }
+    .content-container { padding: 20px 20px 140px; margin-top: 90px; }
+    .active-claim-grid { grid-template-columns: 1fr; }
+    .qr-card { min-height: 280px; }
+    .claim-details { grid-template-columns: 1fr; }
+    .page-title { font-size: 24px; }
+}

@@ -24,9 +24,11 @@
 .status-stat span { opacity: .8; }
 .status-stat b { font-size: 13px; font-weight: 600; }
 .leaderboard-table-card { margin-top: 20px; overflow: hidden; }
-.leaderboard-tabs { display: flex; gap: 24px; padding: 0 20px; border-bottom: 1px solid #E2E8F0; }
-.tab { padding: 14px 4px; color: #64748B; font-size: 13px; font-weight: 600; text-decoration: none; }
+.leaderboard-tabs { display: flex; gap: 24px; padding: 0 20px; border-bottom: 1px solid #E2E8F0; margin-top: 20px; }
+.tab { padding: 14px 4px; color: #64748B; font-size: 13px; font-weight: 600; text-decoration: none; border: none; background: transparent; cursor: pointer; }
 .tab.active { color: #2d650c; border-bottom: 2px solid #2d650c; }
+.leaderboard-panel { display: none; }
+.leaderboard-panel.active { display: block; }
 .table-wrap { overflow-x: auto; }
 .leaderboard-table-card table { width: 100%; border-collapse: collapse; min-width: 650px; }
 .leaderboard-table-card th { padding: 14px 16px; background: #F8FAFC; color: #64748B; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
@@ -37,28 +39,29 @@
 .mini-avatar { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #e1e9dc; color: #2d650c; font-size: 12px; font-weight: 700; }
 .badge-chip { padding: 6px 10px; border-radius: 999px; background: #eef5e9; color: #2d650c; font-size: 11px; font-weight: 700; }
 @media (max-width: 760px) {
-	.main-content { margin-left: 0; }
-	.content-container { padding: 20px; margin-top: 90px; }
-	.leaderboard-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-	.podium-card { padding: 16px 14px 12px; }
-	.podium { height: 170px; gap: 8px; padding-top: 14px; }
-	.podium-person { width: auto; min-width: 0; flex: 1; padding: 10px 4px; }
-	.podium-person.rank-1 { min-height: 130px; }
-	.podium-person.rank-2 { min-height: 110px; }
-	.podium-person.rank-3 { min-height: 100px; }
-	.podium-person strong { font-size: 11px; }
-	.podium-person small { max-width: 100%; font-size: 10px; text-align: center; }
-	.your-status-card { min-height: 0; padding: 20px; }
-	.your-status-card > strong { font-size: 28px; }
-	.status-divider { margin: 14px 0 10px; }
-	.leaderboard-table-card table { min-width: 0; table-layout: fixed; }
-	.leaderboard-table-card th, .leaderboard-table-card td { padding: 8px 4px; font-size: 7px; overflow-wrap: anywhere; }
-	.leaderboard-table-card th:nth-child(1), .leaderboard-table-card td:nth-child(1) { width: 10%; }
-	.leaderboard-table-card th:nth-child(2), .leaderboard-table-card td:nth-child(2) { width: 34%; }
-	.leaderboard-table-card th:nth-child(3), .leaderboard-table-card td:nth-child(3) { width: 18%; }
-	.leaderboard-table-card th:nth-child(4), .leaderboard-table-card td:nth-child(4) { width: 18%; }
-	.leaderboard-table-card th:nth-child(5), .leaderboard-table-card td:nth-child(5) { width: 20%; }
-	.student-cell { gap: 4px; }
-	.student-cell b { font-size: 6px; }
-	.badge-chip { display: inline-block; max-width: 100%; white-space: normal; }
+    html, body { overflow-y: auto !important; height: auto; }
+    .main-content { margin-left: 0; padding-bottom: 100px; min-height: 100vh; }
+    .content-container { padding: 20px 20px 140px; margin-top: 90px; }
+    .leaderboard-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .podium-card { padding: 16px 14px 12px; }
+    .podium { height: 170px; gap: 8px; padding-top: 14px; }
+    .podium-person { width: auto; min-width: 0; flex: 1; padding: 10px 4px; }
+    .podium-person.rank-1 { min-height: 130px; }
+    .podium-person.rank-2 { min-height: 110px; }
+    .podium-person.rank-3 { min-height: 100px; }
+    .podium-person strong { font-size: 11px; }
+    .podium-person small { max-width: 100%; font-size: 10px; text-align: center; }
+    .your-status-card { min-height: 0; padding: 20px; }
+    .your-status-card > strong { font-size: 28px; }
+    .status-divider { margin: 14px 0 10px; }
+    .leaderboard-table-card table { min-width: 0; table-layout: fixed; }
+    .leaderboard-table-card th, .leaderboard-table-card td { padding: 8px 4px; font-size: 7px; overflow-wrap: anywhere; }
+    .leaderboard-table-card th:nth-child(1), .leaderboard-table-card td:nth-child(1) { width: 10%; }
+    .leaderboard-table-card th:nth-child(2), .leaderboard-table-card td:nth-child(2) { width: 34%; }
+    .leaderboard-table-card th:nth-child(3), .leaderboard-table-card td:nth-child(3) { width: 18%; }
+    .leaderboard-table-card th:nth-child(4), .leaderboard-table-card td:nth-child(4) { width: 18%; }
+    .leaderboard-table-card th:nth-child(5), .leaderboard-table-card td:nth-child(5) { width: 20%; }
+    .student-cell { gap: 4px; }
+    .student-cell b { font-size: 6px; }
+    .badge-chip { display: inline-block; max-width: 100%; white-space: normal; }
 }
