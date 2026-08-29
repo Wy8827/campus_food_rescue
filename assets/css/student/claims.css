@@ -2,8 +2,8 @@
 .content-container { padding: 30px; margin-top: 90px; display: flex; flex-direction: column; width: 100%; }
 .page-title { font-weight: bold; font-family: "Inter", sans-serif; font-size: 28px; margin: 0; color: #0F172A; }
 .page-subtitle { font-family: "Inter", sans-serif; margin-left: 0; margin-top: 10px; font-size: 14px; color: #475569; }
-.active-claim-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr) 220px; gap: 24px; margin-top: 24px; }
-.qr-card, .active-claim-card, .impact-mini-card { background: #fff; border: 1px solid #C2C9B7; border-radius: 11px; box-shadow: 0 2px 6px rgba(32,52,20,.04); }
+.active-claim-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; margin-top: 24px; }
+.qr-card, .active-claim-card { background: #fff; border: 1px solid #C2C9B7; border-radius: 11px; box-shadow: 0 2px 6px rgba(32,52,20,.04); }
 .qr-card { padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .claim-qr-code { width: 220px; height: 220px; object-fit: contain; border-radius: 8px; }
 .qr-error { width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; background: #F8FAFC; border-radius: 8px; color: #6b7280; font-size: 14px; }
@@ -23,10 +23,6 @@
 .claim-details div { padding: 12px; border-radius: 7px; background: #F8FAFC; border: 1px solid #E2E8F0; }
 .claim-details span { display: block; color: #64748B; font-size: 12px; margin-bottom: 4px; font-weight: 600; }
 .claim-details strong { display: block; color: #0F172A; font-size: 13px; }
-.impact-mini-card { padding: 24px; display: flex; flex-direction: column; justify-content: center; background: #2d650c; color: #fff; border-color: #2d650c; }
-.impact-mini-card span { font-size: 13px; opacity: .85; font-weight: 600; }
-.impact-mini-card strong { margin-top: 9px; font-size: 32px; font-weight: 700; }
-.impact-mini-card small { margin-top: 5px; line-height: 1.4; font-size: 12px; opacity: .8; }
 .no-active-claim { margin-top: 24px; padding: 40px 20px; text-align: center; background: #fff; border: 1px dashed #d8ded3; border-radius: 12px; }
 .empty-icon { width: 48px; height: 48px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 50%; background: #edf5e9; color: #2d650c; font-weight: 800; font-size: 28px; }
 .no-active-claim h2 { margin: 0 0 8px; font-size: 18px; color: #0F172A; }
@@ -42,7 +38,7 @@
 .history-table th { padding: 14px 16px; background: #F8FAFC; color: #64748B; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
 .history-table td { padding: 14px 16px; border-top: 1px solid #E2E8F0; color: #0F172A; font-size: 13px; }
 .table-empty { text-align: center; padding: 40px !important; color: #64748B !important; font-size: 14px; }
-@media (max-width: 1000px) { .active-claim-grid { grid-template-columns: 200px 1fr; } .impact-mini-card { grid-column: 1 / -1; min-height: 100px; } }
+@media (max-width: 1000px) { .active-claim-grid { grid-template-columns: 200px 1fr; } }
 @media (max-width: 760px) {
     html, body { overflow-y: auto !important; height: auto; }
     .main-content { margin-left: 0; padding-bottom: 100px; min-height: 100vh; }

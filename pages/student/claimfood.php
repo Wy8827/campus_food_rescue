@@ -175,11 +175,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sameFoodStmt = mysqli_prepare(
             $conn,
             "SELECT claim_id
-             FROM claim
-             WHERE listing_id = ?
-             AND student_id = ?
-             AND status IN ('pending', 'confirmed')
-             LIMIT 1"
+            FROM claim
+            WHERE listing_id = ?
+            AND student_id = ?
+            LIMIT 1"
         );
 
         if (!$sameFoodStmt) {
@@ -439,6 +438,12 @@ if (!$listing) {
 $imagePath = !empty($listing['image'])
     ? '../../uploads/food/' . htmlspecialchars($listing['image'])
     : '../../assets/images/logo.png';
+
+$weightKg = (float) ($listing['weight_kg'] ?? 0);
+$totalQuantity = max(1, (int) $listing['total_quantity']);
+$remainingFoodKg = $weightKg * ((int) $listing['remain_quantity'] / $totalQuantity);
+$estimatedCo2 = $remainingFoodKg * CO2_EMISSION_FACTOR;
+
 ?>
 
 <!DOCTYPE html>
@@ -552,12 +557,10 @@ $imagePath = !empty($listing['image'])
                         </div>
 
                         <div>
-                            <span>Weight</span>
+                            <span>CO₂ Saved</span>
 
                             <strong>
-                                <?= htmlspecialchars(
-                                    $listing['weight_kg']
-                                ) ?>
+                                <?= number_format($estimatedCo2, 2) ?>
                                 kg
                             </strong>
                         </div>

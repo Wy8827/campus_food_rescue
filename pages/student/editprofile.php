@@ -8,7 +8,6 @@ requireRole('student');
 $studentId = (int) ($_SESSION['user_id'] ?? 0);
 $profileError = '';
 $passwordError = '';
-$profileSuccess = '';
 $passwordSuccess = '';
 
 $userStmt = mysqli_prepare($conn, "SELECT user_name, email FROM user WHERE user_id = ? AND role = 'student' LIMIT 1");
@@ -102,9 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <section class="profile-card edit-profile-card">
                 <?php if ($profileError): ?>
                     <div class="edit-profile-error"><?= htmlspecialchars($profileError) ?></div>
-                <?php endif; ?>
-                <?php if ($profileSuccess): ?>
-                    <div class="edit-profile-success"><?= htmlspecialchars($profileSuccess) ?></div>
                 <?php endif; ?>
 
                 <form method="POST" class="edit-profile-form">

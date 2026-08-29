@@ -36,19 +36,6 @@ mysqli_stmt_bind_param($claimCountStmt, 'i', $studentId);
 mysqli_stmt_execute($claimCountStmt);
 $totalClaims = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($claimCountStmt))['total_claims'];
 
-$topLocationStmt = mysqli_prepare($conn, "
-    SELECT fl.pickup_location, COUNT(*) AS claim_count
-    FROM claim c
-    INNER JOIN food_listing fl ON fl.listing_id = c.listing_id
-    WHERE c.student_id = ?
-    GROUP BY fl.pickup_location
-    ORDER BY claim_count DESC
-    LIMIT 1
-");
-mysqli_stmt_bind_param($topLocationStmt, 'i', $studentId);
-mysqli_stmt_execute($topLocationStmt);
-$topLocation = mysqli_fetch_assoc(mysqli_stmt_get_result($topLocationStmt));
-
 $meals = (int) ($impact['meals_rescued'] ?? 0);
 $co2 = (float) ($impact['co2_saved'] ?? 0);
 $water = (float) ($impact['water_saved'] ?? 0);

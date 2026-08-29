@@ -86,14 +86,6 @@ $currentPeriod = in_array($period, $periodOptions, true) ? $period : 'week';
 $currentLeaders = $leaderboardData[$currentPeriod];
 
 $currentRank = null;
-$currentStats = null;
-foreach ($currentLeaders as $index => $leader) {
-    if ((int) $leader['user_id'] === $studentId) {
-        $currentRank = $index + 1;
-        $currentStats = $leader;
-        break;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">

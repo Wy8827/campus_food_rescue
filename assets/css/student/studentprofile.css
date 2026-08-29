@@ -50,8 +50,10 @@
 .edit-profile-form input { width: 100%; height: 42px; padding: 0 14px; border: 1px solid #E2E8F0; border-radius: 8px; background: #fff; color: #0F172A; font-size: 13px; }
 .edit-profile-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
 .edit-profile-actions .claim-button { border: 0; padding: 0 24px; cursor: pointer; height: 42px; }
+.claim-button { display: flex; align-items: center; justify-content: center; min-height: 38px; border-radius: 7px; background: #2d650c; color: #fff; text-decoration: none; font-size: 13px; font-weight: 700; }
 .edit-profile-cancel { color: #475569; font-size: 13px; }
 .edit-profile-error { margin-bottom: 16px; padding: 12px; border-radius: 8px; background: #FEF2F2; color: #991B1B; font-size: 13px; border: 1px solid #FCA5A5; }
+.edit-profile-success { margin-bottom: 16px; padding: 12px; border-radius: 8px; background: #eef5e9; color: #2d650c; font-size: 13px; border: 1px solid #cfe0c3; }
 @media (max-width: 1000px) { .profile-layout { grid-template-columns: 1fr; } .profile-side { display: grid; grid-template-columns: 1fr 1fr; } }
 @media (max-width: 760px) {
     html, body { overflow-y: auto !important; height: auto; }

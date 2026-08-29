@@ -93,18 +93,12 @@ $sql = "
         fl.pickup_location,
         fl.image,
         fl.expires_at,
-        fl.weight_kg,
-
-        ir.co2_saved_kg,
-        ir.water_saved_litre
+        fl.weight_kg
 
     FROM claim c
 
     INNER JOIN food_listing fl
         ON fl.listing_id = c.listing_id
-
-    LEFT JOIN impact_record ir
-        ON ir.claim_id = c.claim_id
 
     WHERE c.student_id = ?
 
@@ -276,9 +270,8 @@ function claimStatusClass(string $status): string
                 <?php
 
                 $claimImage = !empty($activeClaim['image'])
-                    ? '../../' . ltrim(
-                        $activeClaim['image'],
-                        '/'
+                    ? '../../uploads/food/' . htmlspecialchars(
+                        $activeClaim['image']
                     )
                     : '../../assets/images/logo.png';
 
@@ -436,30 +429,6 @@ function claimStatusClass(string $status): string
                             </div>
 
                         </div>
-
-                    </div>
-
-                    <!-- Impact -->
-                    <div class="impact-mini-card">
-
-                        <span>
-                            Your impact
-                        </span>
-
-                        <strong>
-                            <?= number_format(
-                                (float) (
-                                    $activeClaim['co2_saved_kg']
-                                    ?? 0
-                                ),
-                                2
-                            ) ?>
-                            kg
-                        </strong>
-
-                        <small>
-                            CO₂ saved from completed claims
-                        </small>
 
                     </div>
 

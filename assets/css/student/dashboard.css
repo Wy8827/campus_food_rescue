@@ -36,10 +36,10 @@
 .food-tag { padding: 4px 8px; border-radius: 999px; background: #edf6e9; color: #2d650c; font-size: 11px; font-weight: 700; }
 .food-meta { display: flex; flex-direction: column; gap: 4px; margin-top: auto; color: #475569; font-size: 13px; }
 .claim-button { display: flex; align-items: center; justify-content: center; min-height: 38px; margin-top: 4px; border-radius: 7px; background: #2d650c; color: #fff; text-decoration: none; font-size: 13px; font-weight: 700; }
-.empty-state, .no-active-claim { grid-column: 1 / -1; padding: 60px 30px; text-align: center; background: #fff; border: 1px dashed #E2E8F0; border-radius: 12px; }
+.empty-state { grid-column: 1 / -1; padding: 60px 30px; text-align: center; background: #fff; border: 1px dashed #E2E8F0; border-radius: 12px; }
 .empty-icon { width: 50px; height: 50px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 50%; background: #edf5e9; color: #2d650c; font-weight: 800; font-size: 30px; }
-.empty-state h2, .no-active-claim h2 { margin: 0 0 8px; font-size: 18px; color: #0F172A; }
-.empty-state p, .no-active-claim p { margin: 0 0 20px; color: #475569; font-size: 14px; }
+.empty-state h2 { margin: 0 0 8px; font-size: 18px; color: #0F172A; }
+.empty-state p { margin: 0 0 20px; color: #475569; font-size: 14px; }
 .claim-detail-page { display: grid; grid-template-columns: minmax(320px, 48%) 1fr; gap: 32px; margin-top: 24px; padding: 30px; background: #fff; border: 1px solid #C2C9B7; border-radius: 11px; }
 .claim-detail-image img { width: 100%; height: 400px; object-fit: cover; border-radius: 10px; background: #F8FAFC; }
 .claim-detail-copy { padding: 20px 0; }
