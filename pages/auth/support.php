@@ -3,6 +3,12 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../../config/session.php';
 require_once __DIR__ . '/../../config/db.php';
 
+// One shared page for everyone — the content below never changes based on
+// login state. Only the surrounding shell does: a logged-out visitor gets
+// the public navbar/footer, a logged-in user (any role) gets their real
+// sidebar + topbar instead, via includes/sidebar.php — which now resolves
+// its own links correctly regardless of which folder this file lives in.
+$loggedIn = isLoggedIn();
 ?>
 
 <!DOCTYPE html>
@@ -13,12 +19,45 @@ require_once __DIR__ . '/../../config/db.php';
     <title>Support & Contact - Campus Food Rescue</title>
     <!-- Core & Layout Stylesheets -->
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/global.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/public_navbar_footer.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/landing.css">
+    <?php if ($loggedIn): ?>
+        <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/sidebar.css">
+        <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/topbar.css">
+        <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/dashboard.css">
+    <?php else: ?>
+        <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/public_navbar_footer.css">
+        <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/landing.css">
+    <?php endif; ?>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Custom styling specific to Support Page -->
     <style>
+        /* Defined locally rather than relying on landing.css's :root block
+           (which isn't loaded when logged in — see the $loggedIn branch
+           above). Keeping the page self-sufficient means this content
+           renders identically whether it's wrapped in the public navbar
+           or the dashboard sidebar. Same values as landing.css uses. */
+        :root {
+            --primary-color: #3b7b26;
+            --primary-hover: #2e621d;
+            --primary-light: #f0f7ef;
+            --text-dark: #1a1a1a;
+            --text-gray: #555555;
+            --text-light: #888888;
+            --bg-gray: #f8f9fa;
+            --border-color: #e5e7eb;
+            --container-width: 1200px;
+            --border-radius-md: 12px;
+            --border-radius-sm: 6px;
+        }
+
+        /* Same reason as the :root block above — .container is only
+           defined in landing.css, which isn't loaded when logged in. */
+        .container {
+            max-width: var(--container-width);
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
         .support-hero {
             background-color: var(--bg-gray);
             padding: 72px 0 48px;
@@ -195,10 +234,7 @@ require_once __DIR__ . '/../../config/db.php';
 </head>
 <body>
 
-    <!-- Public Navigation Bar -->
-    <?php include __DIR__ . '/../../includes/public_navbar.php'; ?>
-
-    <main>
+<?php ob_start(); ?>
         <!-- Support Header / Banner -->
         <section class="support-hero">
             <div class="container">
@@ -287,10 +323,25 @@ require_once __DIR__ . '/../../config/db.php';
 
             </div>
         </section>
-    </main>
+<?php $supportContent = ob_get_clean(); ?>
 
-    <!-- Public Footer -->
+<?php if ($loggedIn): ?>
+    <div class="dashboard-container">
+        <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+        <main class="main-content">
+            <div class="topbar-container"><?php include __DIR__ . '/../../includes/topbar.php'; ?></div>
+            <div class="content-container" style="padding: 0;">
+                <?= $supportContent ?>
+            </div>
+        </main>
+    </div>
+<?php else: ?>
+    <?php include __DIR__ . '/../../includes/public_navbar.php'; ?>
+    <main>
+        <?= $supportContent ?>
+    </main>
     <?php include __DIR__ . '/../../includes/public_footer.php'; ?>
+<?php endif; ?>
 
 </body>
 </html>

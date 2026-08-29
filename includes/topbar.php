@@ -32,6 +32,6 @@ $topbar_profile_page = $topbar_profile_pages[$roleLower] ?? 'profile.php';
             </div>
         </a>
 
-        <button class="logout-btn" onclick="if (confirm('Are you sure you want to log out?')) { window.location.href='../../pages/auth/logout.php'; }">Logout</button>
+        <button class="logout-btn" onclick="window.location.href='../../pages/auth/logout.php'">Logout</button>
     </div>
 </header>
