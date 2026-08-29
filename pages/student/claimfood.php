@@ -437,7 +437,7 @@ if (!$listing) {
 }
 
 $imagePath = !empty($listing['image'])
-    ? '../../' . ltrim($listing['image'], '/')
+    ? '../../uploads/food/' . htmlspecialchars($listing['image'])
     : '../../assets/images/logo.png';
 ?>
 

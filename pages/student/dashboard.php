@@ -450,7 +450,7 @@ $displayCo2PerKg = CO2_EMISSION_FACTOR;
                     <?php while ($row = mysqli_fetch_assoc($result)): ?>
                         <?php
                         $imagePath = !empty($row['image'])
-                            ? '../../' . ltrim($row['image'], '/')
+                            ? '../../uploads/food/' . htmlspecialchars($row['image'])
                             : '../../assets/images/logo.png';
 
                         $weightKg = (float) ($row['weight_kg'] ?? 0);
