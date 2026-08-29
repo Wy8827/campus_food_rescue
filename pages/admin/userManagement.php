@@ -7,126 +7,7 @@ require_once __DIR__ . '/../../config/db.php';
 requireRole('admin');   
 
 // ----------------------------------------------------  
-// 1. CAPTURE SEARCH & FILTER INPUTS  
-// ----------------------------------------------------  
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';  
-$roleFilter = $_GET['role'] ?? 'all';  
-$statusFilter = $_GET['status'] ?? 'all';  
-
-// Dynamic SQL query conditions  
-$conditions = [];  
-$params = [];  
-$types = "";
-
-if ($search !== '') {          
-    $conditions[] = "(u.user_name LIKE ? OR u.email LIKE ? OR u.user_id = ? OR p.provider_name LIKE ? OR p.location LIKE ?)";          
-    $params[] = '%' . $search . '%';          
-    $params[] = '%' . $search . '%';          
-    $params[] = $search;      
-    $params[] = '%' . $search . '%';
-    $params[] = '%' . $search . '%';
-    $types .= "sssss"; 
-}
-
-if ($roleFilter !== 'all') {          
-    $conditions[] = "u.role = ?";          
-    $params[] = $roleFilter;      
-    $types .= "s"; 
-}
-
-if ($statusFilter !== 'all') {          
-    $conditions[] = "u.account_status = ?";          
-    $params[] = $statusFilter;      
-    $types .= "s"; 
-}
-
-$whereClause = "";  
-if (count($conditions) > 0) {          
-    $whereClause = " WHERE " . implode(" AND ", $conditions);  
-}
-
-// ----------------------------------------------------  
-// 2. HANDLE CSV EXPORT  
-// ----------------------------------------------------  
-if (isset($_GET['action']) && $_GET['action'] === 'export_csv') {
-    // Fetch all records matching the current filters (without pagination limit)
-    $exportQuery = "SELECT u.user_id, u.user_name, u.email, u.role, u.account_status, u.no_show_count, u.security_question, 
-                           p.provider_id, p.provider_name, p.contact_number, p.location, p.operating_hours,
-                           ROW_NUMBER() OVER (PARTITION BY u.role ORDER BY u.user_id ASC) AS role_seq           
-                    FROM `user` u
-                    LEFT JOIN `provider` p ON u.user_id = p.user_id " . $whereClause . "            
-                    ORDER BY u.user_id ASC";
-
-    $stmt = mysqli_prepare($conn, $exportQuery);
-    if (!empty($params)) {
-        mysqli_stmt_bind_param($stmt, $types, ...$params);
-    }
-    mysqli_stmt_execute($stmt);
-    $exportResult = mysqli_stmt_get_result($stmt);
-
-    // Set headers for download
-    $filename = "user_list_export_" . date('Ymd_His') . ".csv";
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    header('Pragma: no-cache');
-    header('Expires: 0');
-
-    $output = fopen('php://output', 'w');
-
-    // Add UTF-8 BOM so Excel displays characters correctly
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-
-    // CSV Header row
-    fputcsv($output, [
-        'User ID',
-        'Display ID',
-        'User Name',
-        'Email Address',
-        'Role',
-        'Account Status',
-        'No-Show Count',
-        'Credit Score',
-        'Outlet / Stall Name',
-        'Contact Number',
-        'Location',
-        'Operating Hours',
-        'Security Question'
-    ]);
-
-    $rolePrefixes = ['admin' => 'A', 'provider' => 'P', 'student' => 'S'];
-
-    while ($row = mysqli_fetch_assoc($exportResult)) {
-        $roleLower = strtolower($row['role']);
-        $prefix = $rolePrefixes[$roleLower] ?? 'U';
-        $displayId = $prefix . ($row['role_seq'] ?? $row['user_id']);
-
-        $noShow = (int)($row['no_show_count'] ?? 0);
-        $creditScore = max(0, 100 - ($noShow * 14)) . '%';
-
-        fputcsv($output, [
-            $row['user_id'],
-            $displayId,
-            $row['user_name'],
-            $row['email'],
-            ucfirst($row['role']),
-            ucfirst($row['account_status']),
-            $noShow,
-            $creditScore,
-            !empty($row['provider_name']) ? $row['provider_name'] : 'N/A',
-            !empty($row['contact_number']) ? $row['contact_number'] : 'N/A',
-            !empty($row['location']) ? $row['location'] : 'N/A',
-            !empty($row['operating_hours']) ? $row['operating_hours'] : 'N/A',
-            !empty($row['security_question']) ? $row['security_question'] : 'Not set'
-        ]);
-    }
-
-    fclose($output);
-    mysqli_stmt_close($stmt);
-    exit();
-}
-
-// ----------------------------------------------------  
-// 3. HANDLE EDIT USER FORM SUBMISSION (POST)
+// 1. HANDLE EDIT USER FORM SUBMISSION (POST)
 // ----------------------------------------------------  
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit_user') {
     $editUserId   = trim($_POST['user_id'] ?? '');
@@ -148,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $redirectQuery = http_build_query(array_filter($redirectParams, fn($v) => $v !== '' && $v !== 'all'));
 
     if (!empty($editUserId) && !empty($editName) && !empty($editEmail)) {
+        // Check if admin is resetting security credentials (both question and answer provided)
         if (!empty($editQuestion) && !empty($editAnswer)) {
             $answerHash = password_hash(strtolower($editAnswer), PASSWORD_DEFAULT);
             $updateStmt = mysqli_prepare(
@@ -156,12 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             );
             mysqli_stmt_bind_param($updateStmt, "ssssissi", $editName, $editEmail, $editRole, $editStatus, $editNoShow, $editQuestion, $answerHash, $editUserId);
         } elseif (!empty($editQuestion)) {
+            // Update question only if answer was left unchanged
             $updateStmt = mysqli_prepare(
                 $conn, 
                 "UPDATE `user` SET user_name = ?, email = ?, role = ?, account_status = ?, no_show_count = ?, security_question = ? WHERE user_id = ?"
             );
             mysqli_stmt_bind_param($updateStmt, "ssssisi", $editName, $editEmail, $editRole, $editStatus, $editNoShow, $editQuestion, $editUserId);
         } else {
+            // Standard user profile update without altering security credentials
             $updateStmt = mysqli_prepare(
                 $conn, 
                 "UPDATE `user` SET user_name = ?, email = ?, role = ?, account_status = ?, no_show_count = ? WHERE user_id = ?"
@@ -172,20 +56,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         mysqli_stmt_execute($updateStmt);
         mysqli_stmt_close($updateStmt);
 
+        // Redirect to prevent duplicate submission on page refresh
         header("Location: " . $_SERVER['PHP_SELF'] . ($redirectQuery ? '?' . $redirectQuery : ''));
         exit();
     }
 }
 
 // ----------------------------------------------------  
-// 4. PAGINATION LOGIC  
+// 2. CAPTURE SEARCH & FILTER INPUTS  
+// ----------------------------------------------------  
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';  
+$roleFilter = $_GET['role'] ?? 'all';  
+$statusFilter = $_GET['status'] ?? 'all';  
+
+// Dynamic SQL query conditions  
+$conditions = [];  
+$params = [];  
+$types = "";
+
+if ($search !== '') {          
+    $conditions[] = "(user_name LIKE ? OR email LIKE ? OR user_id = ?)";          
+    $params[] = '%' . $search . '%';          
+    $params[] = '%' . $search . '%';          
+    $params[] = $search;      
+    $types .= "sss"; 
+}
+
+if ($roleFilter !== 'all') {          
+    $conditions[] = "role = ?";          
+    $params[] = $roleFilter;      
+    $types .= "s"; 
+}
+
+if ($statusFilter !== 'all') {          
+    $conditions[] = "account_status = ?";          
+    $params[] = $statusFilter;      
+    $types .= "s"; 
+}
+
+$whereClause = "";  
+if (count($conditions) > 0) {          
+    $whereClause = " WHERE " . implode(" AND ", $conditions);  
+}
+
+// ----------------------------------------------------  
+// 3. PAGINATION LOGIC  
 // ----------------------------------------------------  
 $limit = 10;  
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;  
 if ($page < 1) $page = 1;  
 
 // Count total records matching filter criteria
-$countQuery = "SELECT COUNT(*) FROM `user` u LEFT JOIN `provider` p ON u.user_id = p.user_id" . $whereClause; 
+$countQuery = "SELECT COUNT(*) FROM `user`" . $whereClause; 
 $totalStmt = mysqli_prepare($conn, $countQuery);  
 if (!empty($params)) {     
     mysqli_stmt_bind_param($totalStmt, $types, ...$params);  
@@ -202,14 +124,12 @@ if ($page > $totalPages && $totalUsers > 0) {
 $offset = ($page - 1) * $limit;  
 
 // ----------------------------------------------------  
-// 5. FETCH PAGINATED DATA  
+// 4. FETCH FILTERED DATA WITH ROLE-BASED SEQUENCING  
 // ----------------------------------------------------  
-$query = "SELECT u.user_id, u.user_name, u.email, u.role, u.account_status, u.no_show_count, u.security_question, 
-                 p.provider_id, p.provider_name, p.contact_number, p.location, p.operating_hours, p.provider_status,
-                 ROW_NUMBER() OVER (PARTITION BY u.role ORDER BY u.user_id ASC) AS role_seq           
-          FROM `user` u
-          LEFT JOIN `provider` p ON u.user_id = p.user_id " . $whereClause . "            
-          ORDER BY u.user_id ASC LIMIT ? OFFSET ?"; 
+$query = "SELECT user_id, user_name, email, role, account_status, no_show_count, security_question,                 
+                 ROW_NUMBER() OVER (PARTITION BY role ORDER BY user_id ASC) AS role_seq           
+          FROM `user` " . $whereClause . "            
+          ORDER BY user_id ASC LIMIT ? OFFSET ?"; 
 
 $stmt = mysqli_prepare($conn, $query);  
 $fetchParams = $params; 
@@ -226,14 +146,13 @@ mysqli_stmt_close($stmt);
 $from = $totalUsers > 0 ? $offset + 1 : 0;  
 $to = min($offset + $limit, $totalUsers);  
 
-// Build query string for pagination links & CSV Export
+// Build query string for pagination links
 $urlParams = [          
     'search' => $search,          
-    'role'   => $roleFilter,          
+    'role' => $roleFilter,          
     'status' => $statusFilter  
 ];
 $queryString = http_build_query($urlParams);  
-$exportQueryString = http_build_query(array_merge($urlParams, ['action' => 'export_csv']));
 
 // Standard security questions list
 $securityQuestionsList = [
@@ -283,7 +202,7 @@ $securityQuestionsList = [
         .custom-modal-card {
             background: #FFFFFF;
             width: 100%;
-            max-width: 520px;
+            max-width: 500px;
             max-height: 90vh;
             display: flex;
             flex-direction: column;
@@ -427,13 +346,12 @@ $securityQuestionsList = [
             cursor: not-allowed;
         }
 
-        /* Form Section Dividers */
+        /* Security Reset Section inside Modal */
         .form-section-divider {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 20px 0 14px 0;
-            grid-column: span 2;
+            margin: 22px 0 16px 0;
         }
         .form-section-divider span {
             font-size: 12px;
@@ -455,7 +373,7 @@ $securityQuestionsList = [
             margin-top: 4px;
         }
 
-        /* Action Buttons */
+        /* Modal Action Buttons */
         .btn-modal-cancel {
             height: 38px;
             padding: 0 16px;
@@ -484,14 +402,6 @@ $securityQuestionsList = [
         .btn-modal-submit:hover {
             background-color: #1f4200;
         }
-
-        /* Ensure export link behaves and looks like the original button */
-        a.export-button {
-            display: inline-flex;
-            align-items: center;
-            text-decoration: none;
-            color: inherit;
-        }
     </style>
 </head> 
 <body>     
@@ -511,18 +421,21 @@ $securityQuestionsList = [
                         <p class="page-subtitle">Oversee system participants, adjust roles, and monitor engagement metrics across the campus food rescue network.</p>                     
                     </div>                     
                     <div class="user-page-header-right">                         
-                        <!-- Export CSV button with current search & filters attached -->
-                        <a href="?<?= htmlspecialchars($exportQueryString) ?>" class="export-button">
+                        <button type="button" class="export-button">
                             <ion-icon name="download-outline"></ion-icon>
                             <span>Export List</span>
-                        </a>                                                                        
+                        </button>                           
+                        <button type="button" class="add-user-button">
+                            <ion-icon name="person-add-outline"></ion-icon>
+                            <span>Manual Add</span>
+                        </button>                     
                     </div>                 
-                </div>                  
+                </div>                 
 
                 <!-- Search and Filter Bar -->                 
                 <form method="GET" action="" class="filter-toolbar-box">                     
                     <div class="search-input-wrapper">
-                        <input type="text" name="search" class="search-input" placeholder="Search by name, email, stall, or location" value="<?= htmlspecialchars($search) ?>">                                          
+                        <input type="text" name="search" class="search-input" placeholder="Search by name, email, or ID" value="<?= htmlspecialchars($search) ?>">                                          
                     </div>
 
                     <select name="role" class="filter-select-input" onchange="this.form.submit()">                         
@@ -537,13 +450,13 @@ $securityQuestionsList = [
                         <option value="active" <?= $statusFilter === 'active' ? 'selected' : '' ?>>Active</option>                         
                         <option value="throttled" <?= $statusFilter === 'throttled' ? 'selected' : '' ?>>Throttled</option>                         
                         <option value="banned" <?= $statusFilter === 'banned' ? 'selected' : '' ?>>Banned</option>                     
-                    </select>                                                                  
-                </form>                  
+                    </select>                                           
+                </form>                 
 
                 <!-- User Table Container -->
                 <div class="table-card">                     
                     <table class="user-list-table">                         
-                        <thead>                                                
+                        <thead>                              
                             <tr>                                 
                                 <th style="width: 28%;">USER PROFILE</th>                                 
                                 <th style="width: 14%;">ROLE</th>                                 
@@ -556,31 +469,31 @@ $securityQuestionsList = [
                         <tbody>                             
                             <?php if(!empty($users)): ?>                                 
                                 <?php foreach($users as $user):                                       
-                                    $statusLower = strtolower($user['account_status']);                                       
+                                    $statusLower = strtolower($user['account_status']);                                     
                                     $roleLower = strtolower($user['role']);                                                                                          
                                     
-                                    // Generate initials for avatar                                       
-                                    $words = explode(" ", trim($user['user_name']));                                       
-                                    $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($words[1], 0, 1) : ''));                                                                                                                   
+                                    // Generate initials for avatar                                     
+                                    $words = explode(" ", trim($user['user_name']));                                     
+                                    $initials = strtoupper(substr($words[0], 0, 1) . (isset($words[1]) ? substr($words[1], 0, 1) : ''));                                                                                          
                                     
-                                    // Credit score calculation based on no-show count                                      
-                                    $noShow = isset($user['no_show_count']) ? (int)$user['no_show_count'] : 0;                                       
+                                    // Credit score calculation based on no-show count                                    
+                                    $noShow = isset($user['no_show_count']) ? (int)$user['no_show_count'] : 0;                                     
                                     $creditScore = max(0, 100 - ($noShow * 14));                                       
-                                    $scoreColor = 'green';                                       
-                                    if ($creditScore < 50) $scoreColor = 'red';                                       
-                                    elseif ($creditScore < 80) $scoreColor = 'orange';                                                                                                       
+                                    $scoreColor = 'green';                                     
+                                    if ($creditScore < 50) $scoreColor = 'red';                                     
+                                    elseif ($creditScore < 80) $scoreColor = 'orange';                                                                                          
                                     
-                                    // Role icon and badge configuration                                       
+                                    // Role icon and badge configuration                                     
                                     $roleConfig = [                                         
                                         'admin' => ['icon' => 'shield', 'prefix' => 'A', 'class' => 'role-badge-admin', 'label' => 'Admin'],                                         
                                         'provider' => ['icon' => 'restaurant', 'prefix' => 'P', 'class' => 'role-badge-provider', 'label' => 'Provider'],                                         
                                         'student' => ['icon' => 'school', 'prefix' => 'S', 'class' => 'role-badge-student', 'label' => 'Student'],                                     
-                                    ];                                           
+                                    ];                                       
                                     $currentRole = $roleConfig[$roleLower] ?? ['icon' => 'person', 'prefix' => 'U', 'class' => 'role-badge-admin', 'label' => ucfirst($user['role'])];
                                     $displayId = $currentRole['prefix'] . $user['role_seq'];                                 
-                                ?>                                         
-                                    <tr>                                             
-                                        <td>                                                     
+                                ?>                                       
+                                    <tr>                                         
+                                        <td>                                             
                                             <div class="user-profile-cell">                                                 
                                                 <div class="avatar-circle avatar-<?= $roleLower ?>"><?= $initials ?></div>                                                 
                                                 <div class="user-info-text">                                                     
@@ -589,7 +502,7 @@ $securityQuestionsList = [
                                                 </div>                                             
                                             </div>                                         
                                         </td>                                         
-                                        <td>                                                     
+                                        <td>                                             
                                             <div class="role-badge-box <?= $currentRole['class'] ?>">                                                 
                                                 <ion-icon name="<?= $currentRole['icon'] ?>"></ion-icon>                                                 
                                                 <span><?= $currentRole['label'] ?></span>                                             
@@ -597,22 +510,22 @@ $securityQuestionsList = [
                                         </td>                                         
                                         <td>
                                             <span class="noshow-value"><?= $noShow ?></span>
-                                        </td>                                                           
-                                        <td>                                                     
+                                        </td>                                                 
+                                        <td>                                             
                                             <div class="credit-score-widget">                                                 
                                                 <div class="progress-track">                                                     
                                                     <div class="progress-fill fill-<?= $scoreColor ?>" style="width: <?= $creditScore ?>%;"></div>                                                 
-                                                </div>                                                   
+                                                </div>                                                 
                                                 <span class="score-label text-<?= $scoreColor ?>"><?= $creditScore ?>%</span>                                             
                                             </div>                                         
                                         </td>                                         
-                                        <td>                                                     
+                                        <td>                                             
                                             <div class="status-indicator status-<?= $statusLower ?>">                                                 
                                                 <span class="dot"></span>                                                 
                                                 <span><?= ucfirst(htmlspecialchars($user['account_status'])) ?></span>                                             
                                             </div>                                         
                                         </td>                                         
-                                        <td>                                                     
+                                        <td>                                             
                                             <div class="action-btn-group">                                                 
                                                 <!-- Trigger Edit User Modal -->
                                                 <button type="button" class="btn-edit-user"
@@ -626,7 +539,7 @@ $securityQuestionsList = [
                                                     data-question="<?= htmlspecialchars($user['security_question'] ?? '') ?>"
                                                     onclick="openEditModal(this)">
                                                     Edit User
-                                                </button>                                                   
+                                                </button>                                                  
 
                                                 <!-- Trigger View Details Modal -->
                                                 <button type="button" class="btn-view-details"
@@ -642,24 +555,20 @@ $securityQuestionsList = [
                                                     data-initials="<?= htmlspecialchars($initials) ?>"
                                                     data-role-label="<?= htmlspecialchars($currentRole['label']) ?>"
                                                     data-question="<?= htmlspecialchars($user['security_question'] ?? 'Not set') ?>"
-                                                    data-provider-name="<?= htmlspecialchars($user['provider_name'] ?? '') ?>"
-                                                    data-contact="<?= htmlspecialchars($user['contact_number'] ?? '') ?>"
-                                                    data-location="<?= htmlspecialchars($user['location'] ?? '') ?>"
-                                                    data-hours="<?= htmlspecialchars($user['operating_hours'] ?? '') ?>"
                                                     onclick="openDetailModal(this)">
                                                     View Details
                                                 </button>                                             
                                             </div>                                         
-                                        </td>                                 
+                                        </td>                                     
                                     </tr>                                 
                                 <?php endforeach; ?>                             
                             <?php else: ?>                                 
-                                <tr>                                         
+                                <tr>                                       
                                     <td colspan="6" class="table-empty-cell">No users found matching your search criteria.</td>                                 
                                 </tr>                             
                             <?php endif; ?>                         
                         </tbody>                     
-                    </table>                      
+                    </table>                     
 
                     <!-- Pagination Footer -->                     
                     <div class="table-pagination-footer">                         
@@ -720,33 +629,6 @@ $securityQuestionsList = [
                         <span class="detail-label">No-Show Count</span>
                         <span id="detailNoShow" class="detail-value"></span>
                     </div>
-
-                    <!-- Dynamic Provider Details Section -->
-                    <div id="providerDetailsContainer" class="detail-item full-width" style="display: none;">
-                        <div class="form-section-divider">
-                            <span>Provider Outlet Details</span>
-                            <hr>
-                        </div>
-                        <div class="detail-info-grid">
-                            <div class="detail-item">
-                                <span class="detail-label">Outlet / Business Name</span>
-                                <span id="detailProviderName" class="detail-value"></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Contact Number</span>
-                                <span id="detailContact" class="detail-value"></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Location / Stall</span>
-                                <span id="detailLocation" class="detail-value"></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Operating Hours</span>
-                                <span id="detailHours" class="detail-value"></span>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="detail-item full-width">
                         <span class="detail-label">Security Question</span>
                         <span id="detailQuestion" class="detail-value" style="color: #275300;"></span>
@@ -869,18 +751,6 @@ $securityQuestionsList = [
         document.getElementById('detailNoShow').innerText = data.noshow;
         document.getElementById('detailQuestion').innerText = data.question || 'No security question set';
 
-        // Display provider outlet details if role is provider
-        const providerContainer = document.getElementById('providerDetailsContainer');
-        if (data.role.toLowerCase() === 'provider') {
-            providerContainer.style.display = 'block';
-            document.getElementById('detailProviderName').innerText = data.providerName || 'N/A';
-            document.getElementById('detailContact').innerText = data.contact || 'N/A';
-            document.getElementById('detailLocation').innerText = data.location || 'N/A';
-            document.getElementById('detailHours').innerText = data.hours || 'N/A';
-        } else {
-            providerContainer.style.display = 'none';
-        }
-
         // Avatar configuration
         const avatar = document.getElementById('detailAvatar');
         avatar.innerText = data.initials;
@@ -910,6 +780,7 @@ $securityQuestionsList = [
         document.getElementById('editStatus').value = data.status.toLowerCase();
         document.getElementById('editNoShow').value = data.noshow;
 
+        // Set security question dropdown to current user selection and clear answer field
         document.getElementById('editSecurityQuestion').value = data.question || '';
         document.getElementById('editSecurityAnswer').value = '';
 

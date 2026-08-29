@@ -42,6 +42,21 @@
     ];
     
     $profile_page = $profile_pages[$role] ?? 'profile.php';
+
+    // Every nav/profile URL above is a bare relative filename (e.g.
+    // 'dashboard.php'), which only resolves correctly when the CURRENT
+    // page happens to physically live inside that role's own folder
+    // (pages/food_provider/, pages/student/, pages/admin/). That's true
+    // for every page except pages/auth/support.php — the one shared
+    // support page every role links to from here. Prefixing every link
+    // with the role's real folder makes the sidebar work correctly no
+    // matter which folder the including page actually lives in.
+    $role_folders = [
+        'admin'    => 'admin',
+        'provider' => 'food_provider',
+        'student'  => 'student',
+    ];
+    $role_base = BASE_URL . '/pages/' . ($role_folders[$role] ?? 'student') . '/';
 ?>
 
 <aside class="sidebar">
@@ -59,7 +74,7 @@
                 }
             ?>
                 <li class="nav-container <?= ($current_page == $item['url']) ? 'active' : '' ?>">
-                    <a href="<?= htmlspecialchars($item['url']) ?>">
+                    <a href="<?= $role_base . htmlspecialchars($item['url']) ?>">
                         <span class="nav-icon"><img src="<?= htmlspecialchars($item['icon']) ?>" alt="<?= htmlspecialchars($item['title']) ?>"></span>
                         <span class="nav-text"><?= htmlspecialchars($item['title']) ?></span>
                         <?php if ($badgeCount !== null && $badgeCount > 0): ?>
@@ -74,7 +89,7 @@
     <footer class="sidebar-footer">
         <ul class="sidebar-navigation">
             <li class="footer-nav-container <?= ($current_page == $profile_page) ? 'active' : ''; ?>">
-                <a href="<?= htmlspecialchars($profile_page) ?>">
+                <a href="<?= $role_base . htmlspecialchars($profile_page) ?>">
                     <img src="../../assets/images/setting.png" alt="Settings Logo" width="18" class="nav-icon">
                     <span class="nav-text">Settings</span>
                 </a>
@@ -87,4 +102,4 @@
             </li>
         </ul>
     </footer>
-</aside> 
+</aside>

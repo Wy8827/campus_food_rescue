@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
     $action = $_POST['action'];
     $targetId = (int)$_POST['id'];
     $type = $_POST['type'];
-    $adminId = $_SESSION['user_id'] ?? 1;
+    $adminId = $_SESSION['user_id'] ?? 1; // Fallback to 1 if session is not fully set
 
     try {
         if ($type === 'food') {
@@ -39,36 +39,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
         } elseif ($type === 'provider') {
             // Provider Registration Moderation Logic
             $newStatus = ($action === 'approve') ? 'active' : 'suspended';
-            $logAction = ($action === 'approve') ? 'approve_provider' : 'reject_provider';
+            $logAction = ($action === 'approve') ? 'approved' : 'suspended';
 
-            // 1. update Provider status
             $updateQ = "UPDATE provider SET provider_status = ? WHERE provider_id = ?";
             $stmt = mysqli_prepare($conn, $updateQ);
             mysqli_stmt_bind_param($stmt, "si", $newStatus, $targetId);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
 
-            // 2. check if provider related user_id and store name for logging
-            $getUserQ = "SELECT user_id, provider_name FROM provider WHERE provider_id = ?";
-            $stmtUser = mysqli_prepare($conn, $getUserQ);
-            mysqli_stmt_bind_param($stmtUser, "i", $targetId);
-            mysqli_stmt_execute($stmtUser);
-            $resUser = mysqli_stmt_get_result($stmtUser);
-            $providerData = mysqli_fetch_assoc($resUser);
-            $targetUserId = $providerData['user_id'] ?? $targetId;
-            $providerName = $providerData['provider_name'] ?? 'Provider';
-            mysqli_stmt_close($stmtUser);
-
-            // 3. write into user_audit_log
-            $noteText = "Provider registration " . ($action === 'approve' ? 'approved' : 'rejected') . " for " . $providerName;
-            $logQ = "INSERT INTO user_audit_log (admin_id, affected_user_id, action_type, notes) VALUES (?, ?, ?, ?)";
+            $logQ = "INSERT INTO provider_audit_log (admin_id, provider_id, action_type, reason) VALUES (?, ?, ?, 'Processed via List Moderation')";
             $stmtLog = mysqli_prepare($conn, $logQ);
-            mysqli_stmt_bind_param($stmtLog, "iiss", $adminId, $targetUserId, $logAction, $noteText);
+            mysqli_stmt_bind_param($stmtLog, "iis", $adminId, $targetId, $logAction);
             mysqli_stmt_execute($stmtLog);
             mysqli_stmt_close($stmtLog);
         }
         
-        // Redirect to prevent form resubmission on refresh
+        // Redirect to prevent form resubmission on refresh, maintaining the current view
         header("Location: ?view=" . $currentView);
         exit;
     } catch (Exception $e) {
@@ -79,15 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['typ
 // ==========================================
 // 3. Fetch Data Based on Current View
 // ==========================================
-$allCategories = [];
-
 if ($currentView === 'food') {
-    $tagListQuery = "SELECT DISTINCT tag_name FROM food_tags ORDER BY tag_name ASC";
-    $tagListResult = mysqli_query($conn, $tagListQuery);
-    if ($tagListResult) {
-        $allCategories = mysqli_fetch_all($tagListResult, MYSQLI_ASSOC);
-    }
-
+    // Fetch pending food listings
     $query = "
         SELECT 
             f.listing_id, f.food_name, f.description, f.total_quantity, 
@@ -102,6 +81,7 @@ if ($currentView === 'food') {
     $result = mysqli_query($conn, $query);
     $items = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
+    // Helper function for tags
     function getListingTags($conn, $listingId) {
         $tagQuery = "SELECT t.tag_name FROM food_tags t JOIN food_listing_tags flt ON t.tag_id = flt.tag_id WHERE flt.listing_id = ?";
         $stmt = mysqli_prepare($conn, $tagQuery);
@@ -113,6 +93,7 @@ if ($currentView === 'food') {
         return array_column($tags, 'tag_name');
     }
 } else {
+    // Fetch pending provider registrations
     $query = "
         SELECT 
             provider_id, provider_name, contact_number, location, 
@@ -138,6 +119,7 @@ if ($currentView === 'food') {
     <script nomodule src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.js"></script>
     <title>List Moderation</title>
     <style>
+        /* New Styles for the View Toggle Buttons */
         .view-tabs {
             margin-top: 20px;
             display: flex;
@@ -173,18 +155,11 @@ if ($currentView === 'food') {
             color: #98A2B3;
             font-size: 48px;
         }
-        .no-filter-match {
-            display: none;
-            text-align: center;
-            width: 100%;
-            color: #6B7280;
-            padding: 40px;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
+        <!-- sidebar on the left -->
         <?php include '../../includes/sidebar.php'; ?>
 
         <div class="main-content">
@@ -202,46 +177,35 @@ if ($currentView === 'food') {
                     </div>
                 <?php endif; ?>
 
+                <!-- View Toggle Tabs -->
                 <div class="view-tabs">
                     <a href="?view=food" class="tab-btn <?= $currentView === 'food' ? 'active' : '' ?>">Food Listings</a>
                     <a href="?view=provider" class="tab-btn <?= $currentView === 'provider' ? 'active' : '' ?>">Provider Registrations</a>
                 </div>
 
+                <!-- Existing Toolbar (Only show filters if looking at food) -->
                 <div class="toolbar-container" <?= $currentView === 'provider' ? 'style="display:none;"' : '' ?>>
                     <div class="selection-container">
-                        <select id="categoryFilter" class="filter-select">
+                        <select class="filter-select">
                             <option value="all">Category: All</option>
-                            <?php if (!empty($allCategories)): ?>
-                                <?php foreach ($allCategories as $cat): ?>
-                                    <option value="<?= htmlspecialchars(strtolower($cat['tag_name'])) ?>">
-                                        <?= htmlspecialchars($cat['tag_name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <option value="vegetarian">Vegetarian</option>
-                                <option value="fruit">Fruit</option>
-                            <?php endif; ?>
+                            <option value="vegetarian">Vegetarian</option>
+                            <option value="fruit">Fruit</option>
                         </select>
-
-                        <select id="urgencyFilter" class="filter-select">
-                            <option value="all">Urgency: All</option>
-                            <option value="high">High (&le; 24 Hours)</option>
-                            <option value="medium">Medium (1 - 2 Days)</option>
-                            <option value="low">Low (&gt; 2 Days)</option>
+                        <select class="filter-select">
+                            <option value="urgency">Urgency: All</option>
+                            <option value="high">High (Today)</option>
+                            <option value="medium">Medium (Tomorrow)</option>
+                            <option value="low">Low (Later)</option>
                         </select>
                     </div>
-
                     <div class="view-toggle-buttons">
-                        <button type="button" class="toggle-btn" id="listViewBtn"><ion-icon name="list-outline"></ion-icon></button>
-                        <button type="button" class="toggle-btn active" id="gridViewBtn"><ion-icon name="grid-outline"></ion-icon></button>
+                        <button class="toggle-btn"><ion-icon name="list-outline"></ion-icon></button>
+                        <button class="toggle-btn active"><ion-icon name="grid-outline"></ion-icon></button>
                     </div>
                 </div>
 
-                <ul class="moderation-list" id="moderationList">
-                    <li id="noFilterMatchMessage" class="no-filter-match">
-                        No pending listings match the selected filter criteria.
-                    </li>
-
+                <!-- Shared Moderation List using your exact CSS classes -->
+                <ul class="moderation-list">
                     <?php if (empty($items)): ?>
                         <p style="text-align: center; width: 100%; color: #6B7280; padding: 40px;">
                             No pending <?= $currentView === 'food' ? 'listings' : 'registrations' ?> to review right now. Great job!
@@ -250,18 +214,11 @@ if ($currentView === 'food') {
                         <?php foreach($items as $item): ?>
 
                             <?php if ($currentView === 'food'): 
+                                // FOOD CARD RENDERING
                                 $tags = getListingTags($conn, $item['listing_id']);
                                 $expiryTime = strtotime($item['expires_at']);
                                 $timeDiff = $expiryTime - time();
                                 $isUrgent = ($timeDiff < 86400);
-
-                                if ($timeDiff <= 86400) {
-                                    $urgencyLevel = 'high';
-                                } elseif ($timeDiff <= 172800) {
-                                    $urgencyLevel = 'medium';
-                                } else {
-                                    $urgencyLevel = 'low';
-                                }
 
                                 if ($timeDiff <= 0) {
                                     $expiresText = "Expired";
@@ -276,13 +233,9 @@ if ($currentView === 'food') {
                                     $hours = floor(($timeDiff % 86400) / 3600);
                                     $expiresText = "Expires in " . $days . "d" . ($hours > 0 ? " " . $hours . "h" : "");
                                 }
-
                                 $imagePath = $item['image'] ? UPLOAD_URL . htmlspecialchars($item['image']) : '../../assets/images/placeholder.jpg';
-                                $tagDataString = strtolower(implode(',', $tags));
                             ?>
-                                <li class="moderation-list-item food-item-card" 
-                                    data-tags="<?= htmlspecialchars($tagDataString) ?>" 
-                                    data-urgency="<?= $urgencyLevel ?>">
+                                <li class="moderation-list-item">
                                     <article class="listing-card">
                                         <div class="food-image-container">
                                             <img src="<?= $imagePath ?>" alt="Food Image" class="food-image">
@@ -321,9 +274,12 @@ if ($currentView === 'food') {
                                     </article>
                                 </li>
 
-                            <?php else: ?>
+                            <?php else: 
+                                // PROVIDER CARD RENDERING
+                            ?>
                                 <li class="moderation-list-item">
                                     <article class="listing-card">
+                                        <!-- Using a placeholder icon instead of a food image for vendors -->
                                         <div class="food-image-container">
                                             <div class="provider-icon-placeholder">
                                                 <ion-icon name="storefront-outline"></ion-icon>
@@ -342,6 +298,7 @@ if ($currentView === 'food') {
                                             <div class="meta-details">
                                                 <span class="detail-text">📞 <?= htmlspecialchars($item['contact_number']) ?> • 🕒 <?= htmlspecialchars($item['operating_hours']) ?></span>
                                             </div>
+                                            <!-- Provider request notes displayed in italics -->
                                             <p style="font-size: 13px; color:#475467; margin:0 0 12px 0; font-style:italic;">
                                                 "<?= htmlspecialchars($item['request_note'] ?? 'No additional notes provided.') ?>"
                                             </p>
@@ -349,6 +306,7 @@ if ($currentView === 'food') {
                                             <form method="POST" action="" class="action-buttons" style="margin: 0; padding: 0;">
                                                 <input type="hidden" name="type" value="provider">
                                                 <input type="hidden" name="id" value="<?= $item['provider_id'] ?>">
+                                                <!-- Reusing the exact same button classes -->
                                                 <button type="submit" name="action" value="approve" class="approve-button">Approve</button>
                                                 <button type="submit" name="action" value="reject" class="reject-button">Reject</button>
                                                 <button type="button" class="flag-icon-btn"><ion-icon name="alert-circle-outline"></ion-icon></button>
@@ -356,6 +314,7 @@ if ($currentView === 'food') {
                                         </div>
                                     </article>
                                 </li>
+
                             <?php endif; ?>
 
                         <?php endforeach; ?>
@@ -364,68 +323,5 @@ if ($currentView === 'food') {
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const categorySelect = document.getElementById('categoryFilter');
-            const urgencySelect = document.getElementById('urgencyFilter');
-            const foodCards = document.querySelectorAll('.food-item-card');
-            const noMatchMsg = document.getElementById('noFilterMatchMessage');
-
-            function applyFilters() {
-                if (!categorySelect || !urgencySelect) return;
-
-                const selectedCategory = categorySelect.value.toLowerCase().trim();
-                const selectedUrgency = urgencySelect.value.toLowerCase().trim();
-                let visibleCount = 0;
-
-                foodCards.forEach(card => {
-                    const cardTags = (card.getAttribute('data-tags') || '').split(',').map(t => t.trim());
-                    const cardUrgency = (card.getAttribute('data-urgency') || '').trim();
-
-                    const matchesCategory = (selectedCategory === 'all') || cardTags.includes(selectedCategory);
-                    const matchesUrgency = (selectedUrgency === 'all') || (cardUrgency === selectedUrgency);
-
-                    if (matchesCategory && matchesUrgency) {
-                        card.style.display = '';
-                        visibleCount++;
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-
-                if (noMatchMsg) {
-                    if (visibleCount === 0 && foodCards.length > 0) {
-                        noMatchMsg.style.display = 'block';
-                    } else {
-                        noMatchMsg.style.display = 'none';
-                    }
-                }
-            }
-
-            if (categorySelect && urgencySelect) {
-                categorySelect.addEventListener('change', applyFilters);
-                urgencySelect.addEventListener('change', applyFilters);
-            }
-
-            const listViewBtn = document.getElementById('listViewBtn');
-            const gridViewBtn = document.getElementById('gridViewBtn');
-            const moderationList = document.getElementById('moderationList');
-
-            if (listViewBtn && gridViewBtn && moderationList) {
-                listViewBtn.addEventListener('click', function () {
-                    listViewBtn.classList.add('active');
-                    gridViewBtn.classList.remove('active');
-                    moderationList.classList.add('list-view');
-                });
-
-                gridViewBtn.addEventListener('click', function () {
-                    gridViewBtn.classList.add('active');
-                    listViewBtn.classList.remove('active');
-                    moderationList.classList.remove('list-view');
-                });
-            }
-        });
-    </script>
 </body>
 </html>

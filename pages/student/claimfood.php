@@ -126,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              FROM claim
              WHERE listing_id = ?
              AND student_id = ?
+             AND status IN ('pending', 'confirmed')
              LIMIT 1"
         );
 
@@ -384,7 +385,7 @@ if (!$listing) {
 }
 
 $imagePath = !empty($listing['image'])
-    ? UPLOAD_URL . rawurlencode(basename($listing['image']))
+    ? '../../' . ltrim($listing['image'], '/')
     : '../../assets/images/logo.png';
 ?>
 

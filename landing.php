@@ -184,12 +184,6 @@
                         <h4 class="faq-question">How does pickup work?</h4>
                         <p class="faq-answer">Reserve your meal on the platform, visit the pickup counter during the designated time slot, and show your digital confirmation.</p>
                     </div>
-
-                    <!-- Team / About Us Section-->
-                    <section id="about-us" style="display: flex; justify-content: center; width: 100%; margin: 60px 0 40px 0;">
-                        <img src="assets/images/team.png" alt="Meet Our Team" style="max-width: 600px; width: 90%; height: auto; border-radius: 8px;">
-                    </section>
-
                 </div>
             </div>
         </section>

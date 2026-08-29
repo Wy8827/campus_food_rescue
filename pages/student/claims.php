@@ -212,8 +212,9 @@ function claimStatusClass(string $status): string
                 <?php
 
                 $claimImage = !empty($activeClaim['image'])
-                    ? UPLOAD_URL . rawurlencode(
-                        basename($activeClaim['image'])
+                    ? '../../' . ltrim(
+                        $activeClaim['image'],
+                        '/'
                     )
                     : '../../assets/images/logo.png';
 
