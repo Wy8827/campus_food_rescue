@@ -1,80 +1,78 @@
+// Open and populate View Details modal
+function openDetailModal(btn) {
+    const data = btn.dataset;
 
-// Opens the Edit User modal and pre-fills form data
-function openEditModal(button) {
-    document.getElementById('modal-overlay').style.display = 'flex';
-    document.getElementById('edit-modal').style.display = 'block';
-    document.getElementById('view-modal').style.display = 'none';
-    
-    // Populate form values
-    document.getElementById('edit_user_id').value = button.getAttribute('data-id');
-    document.getElementById('edit_account_status').value = button.getAttribute('data-status');
-    document.getElementById('edit_admin_note').value = ''; // Clear note input on open
-}
+    document.getElementById('detailName').innerText = data.name;
+    document.getElementById('detailMeta').innerText = `${data.displayId} • ${data.email}`;
+    document.getElementById('detailUserId').innerText = data.id;
+    document.getElementById('detailRole').innerText = data.roleLabel;
+    document.getElementById('detailStatus').innerText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+    document.getElementById('detailNoShow').innerText = data.noshow;
+    document.getElementById('detailQuestion').innerText = data.question || 'No security question set';
 
-// Opens the View Details modal and dynamically populates user data
-function openViewModal(button) {
-    document.getElementById('modal-overlay').style.display = 'flex';
-    document.getElementById('view-modal').style.display = 'block';
-    document.getElementById('edit-modal').style.display = 'none';
-    
-    // Set text values
-    document.getElementById('view_user_id').innerText = "#USER-" + button.getAttribute('data-id');
-    document.getElementById('view_name').innerText = button.getAttribute('data-name');
-    document.getElementById('view_email').innerText = button.getAttribute('data-email');
-    document.getElementById('view_role').innerText = button.getAttribute('data-role');
-    document.getElementById('view_noshow').innerText = button.getAttribute('data-noshow');
-    document.getElementById('view_status').innerText = button.getAttribute('data-status');
-    
-    // Set avatar initials and specific background color class
-    let avatar = document.getElementById('view_avatar');
-    avatar.innerText = button.getAttribute('data-initials');
-    avatar.className = "avatar " + button.getAttribute('data-roleclass');
-    
-    // Calculate and set visual credit score indicator
-    let score = parseInt(button.getAttribute('data-score'));
-    document.getElementById('view_score_text').innerText = score + "%";
-    
-    let bar = document.getElementById('view_score_bar');
-    bar.style.width = score + "%";
-    
-    // Assign appropriate color based on threshold logic
-    let colorClass = score < 50 ? "fill-red" : (score < 80 ? "fill-orange" : "fill-green");
-    let textClass = score < 50 ? "score-red" : (score < 80 ? "score-orange" : "score-green");
-    
-    bar.className = "score-bar-fill " + colorClass;
-    document.getElementById('view_score_text').className = "score-text " + textClass;
-
-    // Handle Dynamic Admin Note Display
-    let statusValue = button.getAttribute('data-status').toLowerCase();
-    let reasonContainer = document.getElementById('view_reason_container');
-
-    if (statusValue === 'banned' || statusValue === 'throttled') {
-        reasonContainer.style.display = 'block';
-        // Adjust styling based on severity
-        if(statusValue === 'banned') {
-            reasonContainer.style.background = '#FFF5F5';
-            reasonContainer.style.borderColor = '#FCA5A5';
-            reasonContainer.style.color = '#7F1D1D';
-        } else {
-            reasonContainer.style.background = '#FFFBEB';
-            reasonContainer.style.borderColor = '#FCD34D';
-            reasonContainer.style.color = '#92400E';
-        }
-        document.getElementById('view_reason').innerText = button.getAttribute('data-reason');
+    // Display provider outlet details if role is provider
+    const providerContainer = document.getElementById('providerDetailsContainer');
+    if (data.role.toLowerCase() === 'provider') {
+        providerContainer.style.display = 'block';
+        document.getElementById('detailProviderName').innerText = data.providerName || 'N/A';
+        document.getElementById('detailContact').innerText = data.contact || 'N/A';
+        document.getElementById('detailLocation').innerText = data.location || 'N/A';
+        document.getElementById('detailHours').innerText = data.hours || 'N/A';
     } else {
-        reasonContainer.style.display = 'none';
+        providerContainer.style.display = 'none';
+    }
+
+    // Avatar configuration
+    const avatar = document.getElementById('detailAvatar');
+    avatar.innerText = data.initials;
+    avatar.className = `avatar-circle avatar-${data.role.toLowerCase()}`;
+
+    // Credit score bar and text styling
+    const fill = document.getElementById('detailScoreFill');
+    fill.style.width = data.score + '%';
+    fill.className = `progress-fill fill-${data.scoreColor}`;
+
+    const scoreText = document.getElementById('detailScoreText');
+    scoreText.innerText = data.score + '%';
+    scoreText.className = `score-label text-${data.scoreColor}`;
+
+    document.getElementById('detailModal').classList.add('show');
+}
+
+// Open and populate Edit User modal
+function openEditModal(btn) {
+    const data = btn.dataset;
+
+    document.getElementById('editUserId').value = data.id;
+    document.getElementById('editDisplayId').value = data.displayId;
+    document.getElementById('editUserName').value = data.name;
+    document.getElementById('editEmail').value = data.email;
+    document.getElementById('editRole').value = data.role.toLowerCase();
+    document.getElementById('editStatus').value = data.status.toLowerCase();
+    document.getElementById('editNoShow').value = data.noshow;
+
+    document.getElementById('editSecurityQuestion').value = data.question || '';
+    document.getElementById('editSecurityAnswer').value = '';
+
+    document.getElementById('editModal').classList.add('show');
+}
+
+// Close specified modal
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+}
+
+// Close modal when clicking on backdrop
+function handleBackdropClick(event, modalId) {
+    if (event.target.id === modalId) {
+        closeModal(modalId);
     }
 }
 
-// Closes all modals by hiding the overlay container
-function closeModals() {
-    document.getElementById('modal-overlay').style.display = 'none';
-}
-
-// Allows closing the modal by clicking anywhere outside of the modal content
-window.onclick = function(event) {
-    let overlay = document.getElementById('modal-overlay');
-    if (event.target == overlay) {
-        closeModals();
+// Close open modals on Escape key press
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal('detailModal');
+        closeModal('editModal');
     }
-}
+});

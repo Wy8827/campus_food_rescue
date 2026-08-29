@@ -23,6 +23,7 @@ $security_question = '';
 $security_answer   = '';
 $provider_name     = '';
 $contact           = '';
+$operating_hours   = '';
 $location          = '';
 $request_note      = '';
 
@@ -38,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($role === 'provider') {
         $provider_name = trim($_POST['provider_name'] ?? '');
         $contact       = trim($_POST['contact'] ?? '');
+        $operating_hours = trim($_POST['operating_hours'] ?? '');
         $location      = trim($_POST['location'] ?? '');
         $request_note  = trim($_POST['request_note'] ?? '');
     }
@@ -73,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($location === '' || strlen($location) > 200) {
             $errors[] = 'Please provide your campus location.';
+        }
+        if ($operating_hours === '') {
+            $errors[] = 'Please provide your operating hours.';
         }
     }
 
@@ -112,10 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // this is the exact status admin/moderation.php already filters
             // on and can Approve/Suspend, so no admin-side changes needed.
             $stmt = mysqli_prepare($conn, "
-                INSERT INTO provider (user_id, provider_name, contact_number, location, request_note)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO provider (user_id, provider_name, contact_number, location, operating_hours, request_note)
+                VALUES (?, ?, ?, ?, ?, ?)
             ");
-            mysqli_stmt_bind_param($stmt, "issss", $newUserId, $provider_name, $contact, $location, $request_note);
+            mysqli_stmt_bind_param($stmt, "isssss", $newUserId, $provider_name, $contact, $location, $operating_hours, $request_note);
             if (!mysqli_stmt_execute($stmt)) {
                 $ok = false;
             }
@@ -277,6 +282,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="input-wrap">
                                 <input type="text" id="location" name="location" placeholder="e.g. Block A, GF" value="<?= htmlspecialchars($location) ?>">
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW FIELD: Operating Hours -->
+                    <div class="form-group">
+                        <label for="operating_hours">Operating Hours <span class="req">*</span></label>
+                        <div class="input-wrap">
+                            <input type="text" id="operating_hours" name="operating_hours" 
+                                placeholder="e.g. Mon-Fri 8:00am-5:00pm" 
+                                value="<?= htmlspecialchars($operating_hours) ?>">
                         </div>
                     </div>
 

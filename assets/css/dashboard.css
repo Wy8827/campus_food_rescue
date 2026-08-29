@@ -20,7 +20,7 @@
 
 .content-container{
     padding: 30px;
-    margin-top: 64px;
+    margin-top: 80px;
     display:flex;
     flex-direction: column;
     width: 100%;
@@ -162,14 +162,6 @@
     min-width: 250px;
 }
 
-/* The two-column charts-section (main card + fixed 400px side-column)
-   genuinely needs ~1140px+ of width to fit without cramming — the mobile
-   breakpoint below only stacks at 768px, leaving a gap (roughly
-   768px–1140px, a very common "minimized browser window" range) where
-   nothing shrinks far enough AND nothing stacks either, so content
-   overflows its card. This earlier breakpoint stacks things sooner,
-   before that gap is reached.
-*/
 @media (max-width: 1140px) {
     .charts-section {
         flex-direction: column;
@@ -212,7 +204,6 @@
 
 #admin-dashboard {
     padding: 32px 40px;
-    margin-top: 60px;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -646,15 +637,24 @@
 }
 
 @media (max-width: 768px) {
+    .content-container{
+        margin-top: 15px !important;
+    }
+
     #admin-dashboard {
         padding: 20px 16px;
     }
 
     #admin-dashboard .summary-card-container {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
 
     #admin-dashboard .pie-container {
         grid-template-columns: 1fr;
+    }
+
+    #admin-dashboard .quick-links-card {
+        display: none;
     }
 }
