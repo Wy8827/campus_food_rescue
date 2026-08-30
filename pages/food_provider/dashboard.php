@@ -17,10 +17,6 @@ if (!$providerId) {
 
 // Gate: block all provider functionality until an admin approves the account
 requireApprovedProvider($conn, $providerId);
-// Monthly food-rescue goal used for the progress bar (kg). A real
-// deployment might store this per-provider; kept as a constant here
-// to keep the demo simple and explainable.
-define('MONTHLY_GOAL_KG', 60);
 
 // ---------------------------------------------------------
 // 1. ACTIVE LISTINGS
@@ -32,11 +28,10 @@ $activeListings = mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];
 mysqli_stmt_close($stmt);
 
 // ---------------------------------------------------------
-// 2. PENDING PICKUPS (+ how many are about to expire in <15 mins)
+// 2. PENDING PICKUPS
 // ---------------------------------------------------------
 $stmt = mysqli_prepare($conn, "
-    SELECT COUNT(*) AS total,
-           SUM(CASE WHEN TIMESTAMPDIFF(MINUTE, NOW(), c.reservation_expires_at) <= 15 THEN 1 ELSE 0 END) AS critical
+    SELECT COUNT(*) AS total
     FROM claim c
     JOIN food_listing f ON c.listing_id = f.listing_id
     WHERE f.provider_id = ? AND c.status IN ('pending','confirmed')
@@ -46,10 +41,9 @@ mysqli_stmt_execute($stmt);
 $pendingRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 mysqli_stmt_close($stmt);
 $pendingPickups = (int)($pendingRow['total'] ?? 0);
-$criticalPickups = (int)($pendingRow['critical'] ?? 0);
 
 // ---------------------------------------------------------
-// 3. COMPLETED TODAY (+ % change vs yesterday)
+// 3. COMPLETED TODAY
 // ---------------------------------------------------------
 $stmt = mysqli_prepare($conn, "
     SELECT COUNT(*) FROM claim c
@@ -61,24 +55,8 @@ mysqli_stmt_execute($stmt);
 $completedToday = (int)mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];
 mysqli_stmt_close($stmt);
 
-$stmt = mysqli_prepare($conn, "
-    SELECT COUNT(*) FROM claim c
-    JOIN food_listing f ON c.listing_id = f.listing_id
-    WHERE f.provider_id = ? AND c.status = 'completed' AND DATE(c.confirmed_at) = CURDATE() - INTERVAL 1 DAY
-");
-mysqli_stmt_bind_param($stmt, "i", $providerId);
-mysqli_stmt_execute($stmt);
-$completedYesterday = (int)mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];
-mysqli_stmt_close($stmt);
-
-if ($completedYesterday > 0) {
-    $pctChange = round((($completedToday - $completedYesterday) / $completedYesterday) * 100);
-} else {
-    $pctChange = $completedToday > 0 ? 100 : 0;
-}
-
 // ---------------------------------------------------------
-// 4. TOTAL FOOD SAVED (all-time, kg) + CO2 offset
+// 4. TOTAL FOOD SAVED (all-time, kg) + CO2 / water offset
 // ---------------------------------------------------------
 $stmt = mysqli_prepare($conn, "
     SELECT COALESCE(SUM((c.portion_claimed / f.total_quantity) * f.weight_kg), 0) AS weight_saved
@@ -92,7 +70,7 @@ $totalFoodSaved = round(mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['weigh
 mysqli_stmt_close($stmt);
 
 $stmt = mysqli_prepare($conn, "
-    SELECT COALESCE(SUM(ir.co2_saved_kg), 0) AS co2
+    SELECT COALESCE(SUM(ir.co2_saved_kg), 0) AS co2, COALESCE(SUM(ir.water_saved_litre), 0) AS water
     FROM impact_record ir
     JOIN claim c ON ir.claim_id = c.claim_id
     JOIN food_listing f ON c.listing_id = f.listing_id
@@ -100,7 +78,9 @@ $stmt = mysqli_prepare($conn, "
 ");
 mysqli_stmt_bind_param($stmt, "i", $providerId);
 mysqli_stmt_execute($stmt);
-$totalCo2 = round(mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['co2'], 1);
+$totalRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$totalCo2 = round($totalRow['co2'], 1);
+$totalWater = round($totalRow['water'], 0);
 mysqli_stmt_close($stmt);
 
 // ---------------------------------------------------------
@@ -108,7 +88,8 @@ mysqli_stmt_close($stmt);
 // ---------------------------------------------------------
 $stmt = mysqli_prepare($conn, "
     SELECT COALESCE(SUM((c.portion_claimed / f.total_quantity) * f.weight_kg), 0) AS weight_saved,
-           COALESCE(SUM(ir.co2_saved_kg), 0) AS co2
+           COALESCE(SUM(ir.co2_saved_kg), 0) AS co2,
+           COALESCE(SUM(ir.water_saved_litre), 0) AS water
     FROM claim c
     JOIN food_listing f ON c.listing_id = f.listing_id
     LEFT JOIN impact_record ir ON ir.claim_id = c.claim_id
@@ -121,7 +102,7 @@ $monthRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 mysqli_stmt_close($stmt);
 $monthWeight = round($monthRow['weight_saved'], 1);
 $monthCo2 = round($monthRow['co2'], 1);
-$monthProgress = min(100, round(($monthWeight / MONTHLY_GOAL_KG) * 100));
+$monthWater = round($monthRow['water'], 0);
 
 // ---------------------------------------------------------
 // 6. ACTIVE LISTINGS TABLE (most urgent first)
@@ -197,25 +178,18 @@ mysqli_stmt_close($stmt);
                     <div class="summary-card">
                         <span class="card-title">PENDING PICKUPS</span>
                         <span class="card-value"><?= htmlspecialchars($pendingPickups) ?></span>
-                        <?php if ($criticalPickups > 0): ?>
-                            <span style="font-size:12px; color:#B42318; font-weight:600;"><?= $criticalPickups ?> critical</span>
-                        <?php else: ?>
-                            <span style="font-size:12px; color:#667085;">none urgent</span>
-                        <?php endif; ?>
                     </div>
 
                     <div class="summary-card">
                         <span class="card-title">COMPLETED TODAY</span>
                         <span class="card-value"><?= htmlspecialchars($completedToday) ?></span>
-                        <span style="font-size:12px; color:<?= $pctChange >= 0 ? '#15803D' : '#B42318' ?>; font-weight:600;">
-                            <?= $pctChange >= 0 ? '+' : '' ?><?= $pctChange ?>% vs yesterday
-                        </span>
                     </div>
 
                     <div class="summary-card" style="background-color:#385E29; border-color:#385E29;">
                         <span class="card-title" style="color:#D9E8CE;">TOTAL FOOD SAVED</span>
                         <span class="card-value" style="color:#FFFFFF;"><?= htmlspecialchars($totalFoodSaved) ?><span class="unit" style="color:#D9E8CE;">kg</span></span>
-                        <span style="font-size:12px; color:#D9E8CE;">&asymp; <?= htmlspecialchars($totalCo2) ?>kg CO2 offset</span>
+                        <span style="font-size:12px; color:#D9E8CE;">&asymp; <?= htmlspecialchars($totalCo2) ?>kg CO<sub>2</sub> offset</span>
+                        <span style="font-size:12px; color:#D9E8CE;">&asymp; <?= htmlspecialchars($totalWater) ?>L water saved</span>
                     </div>
                 </div>
 
@@ -268,17 +242,19 @@ mysqli_stmt_close($stmt);
 
                         <div class="activity-container">
                             <span class="quick-link-header">Monthly Impact</span>
+                            <div style="text-align:right; margin-top:-24px; margin-bottom:8px;">
+                                <a href="impact.php" style="font-size:12px;">View All</a>
+                            </div>
                             <div style="padding: 0 10px;">
                                 <div style="display:flex; justify-content:space-between; font-size:13px; color:#475467; margin-bottom:6px;">
                                     <span>Total food rescued</span><span style="font-weight:700;"><?= htmlspecialchars($monthWeight) ?> kg</span>
                                 </div>
-                                <div style="display:flex; justify-content:space-between; font-size:13px; color:#475467; margin-bottom:14px;">
-                                    <span>CO2 emissions avoided</span><span style="font-weight:700;"><?= htmlspecialchars($monthCo2) ?> kg CO2e</span>
+                                <div style="display:flex; justify-content:space-between; font-size:13px; color:#475467; margin-bottom:6px;">
+                                    <span>CO<sub>2</sub> emissions avoided</span><span style="font-weight:700;"><?= htmlspecialchars($monthCo2) ?> kg CO<sub>2</sub>e</span>
                                 </div>
-                                <div style="height:8px; background-color:#EAECF0; border-radius:4px; overflow:hidden;">
-                                    <div style="height:100%; width:<?= $monthProgress ?>%; background-color:#385E29;"></div>
+                                <div style="display:flex; justify-content:space-between; font-size:13px; color:#475467;">
+                                    <span>Water saved</span><span style="font-weight:700;"><?= htmlspecialchars($monthWater) ?> L</span>
                                 </div>
-                                <div style="text-align:right; font-size:12px; color:#667085; margin-top:6px;"><?= $monthProgress ?>% of monthly goal</div>
                             </div>
                         </div>
 

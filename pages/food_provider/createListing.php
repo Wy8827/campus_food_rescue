@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="field-row">
                                     <div class="field-group">
                                         <label class="field-label">Food Type</label>
-                                        <input type="text" name="food_name" class="text-input" placeholder="e.g., Assorted Sandwiches" value="<?= htmlspecialchars($food_name) ?>" maxlength="200" required>
+                                        <input type="text" name="food_name" class="text-input" placeholder="e.g. Curry Chicken Noodle" value="<?= htmlspecialchars($food_name) ?>" maxlength="200" required>
                                     </div>
                                     <div class="field-group">
                                         <label class="field-label">Quantity</label>
@@ -214,12 +214,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 <div class="field-group">
                                     <label class="field-label">Approx. Weight (kg)</label>
-                                    <input type="number" name="weight_kg" min="0.1" step="0.1" class="text-input" placeholder="e.g., 2.5" value="<?= htmlspecialchars($weight_kg) ?>" style="max-width:220px;" required>
+                                    <input type="number" name="weight_kg" min="0.1" step="0.1" class="text-input" placeholder="e.g. 2.5" value="<?= htmlspecialchars($weight_kg) ?>" style="max-width:220px;" required>
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label">Description / Notes <span style="font-weight:400; color:#98A2B3;">— optional</span></label>
-                                    <textarea name="description" class="textarea-input" placeholder="e.g., Contains dairy in the cheese danishes. Please bring your own container if possible." maxlength="500"><?= htmlspecialchars($description) ?></textarea>
+                                    <textarea name="description" class="textarea-input" placeholder="e.g. Please bring your own container if possible." maxlength="500"><?= htmlspecialchars($description) ?></textarea>
                                 </div>
 
                                 <h3 class="form-section-title" style="margin-top:22px;">Dietary Categorization</h3>

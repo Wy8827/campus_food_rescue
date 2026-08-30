@@ -155,7 +155,6 @@ mysqli_stmt_close($stmt);
 $stmt = mysqli_prepare($conn, "
     SELECT
         SUM(CASE WHEN c.status IN ('pending','confirmed') AND c.reservation_expires_at >= NOW() THEN 1 ELSE 0 END) AS pending_count,
-        SUM(CASE WHEN c.status IN ('pending','confirmed') AND c.reservation_expires_at >= NOW() AND TIMESTAMPDIFF(MINUTE, NOW(), c.reservation_expires_at) <= 15 THEN 1 ELSE 0 END) AS expiring_soon,
         SUM(CASE WHEN c.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
         SUM(CASE WHEN c.status = 'expired' THEN 1 ELSE 0 END) AS expired_count,
         SUM(CASE WHEN c.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count,
@@ -176,25 +175,6 @@ $stmt = mysqli_prepare($conn, "
 mysqli_stmt_bind_param($stmt, "i", $providerId);
 mysqli_stmt_execute($stmt);
 $completedToday = (int)mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];
-mysqli_stmt_close($stmt);
-
-$stmt = mysqli_prepare($conn, "
-    SELECT COUNT(*) FROM claim c JOIN food_listing f ON c.listing_id = f.listing_id
-    WHERE f.provider_id = ? AND c.status = 'completed' AND DATE(c.confirmed_at) = CURDATE() - INTERVAL 1 DAY
-");
-mysqli_stmt_bind_param($stmt, "i", $providerId);
-mysqli_stmt_execute($stmt);
-$completedYesterday = (int)mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];
-mysqli_stmt_close($stmt);
-$vsYesterday = $completedYesterday > 0 ? $completedToday - $completedYesterday : $completedToday;
-
-$stmt = mysqli_prepare($conn, "
-    SELECT COUNT(*) FROM claim c JOIN food_listing f ON c.listing_id = f.listing_id
-    WHERE f.provider_id = ? AND c.status = 'expired' AND c.reservation_expires_at >= CURDATE() - INTERVAL 7 DAY
-");
-mysqli_stmt_bind_param($stmt, "i", $providerId);
-mysqli_stmt_execute($stmt);
-$expiredThisWeek = (int)mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];
 mysqli_stmt_close($stmt);
 
 // Listing dropdown options
@@ -254,22 +234,18 @@ function filterUrl(array $filters, array $overrides): string {
                     <div class="ct-stat-card">
                         <div class="ct-stat-label">Pending pickup</div>
                         <div class="ct-stat-val ct-amber"><?= (int)$counts['pending_count'] ?></div>
-                        <div class="ct-stat-sub"><?= (int)$counts['expiring_soon'] ?> expiring soon</div>
                     </div>
                     <div class="ct-stat-card">
                         <div class="ct-stat-label">Completed today</div>
                         <div class="ct-stat-val ct-green"><?= $completedToday ?></div>
-                        <div class="ct-stat-sub"><?= $vsYesterday >= 0 ? '+' : '' ?><?= $vsYesterday ?> vs yesterday</div>
                     </div>
                     <div class="ct-stat-card">
                         <div class="ct-stat-label">Expired (no-show)</div>
-                        <div class="ct-stat-val ct-red"><?= $expiredThisWeek ?></div>
-                        <div class="ct-stat-sub">This week</div>
+                        <div class="ct-stat-val ct-red"><?= (int)$counts['expired_count'] ?></div>
                     </div>
                     <div class="ct-stat-card">
                         <div class="ct-stat-label">Total claims</div>
                         <div class="ct-stat-val"><?= (int)$counts['total_count'] ?></div>
-                        <div class="ct-stat-sub">All time</div>
                     </div>
                 </div>
 

@@ -42,7 +42,7 @@ function resolveClaim(mysqli $conn, int $providerId, string $input): ?array {
     $stmt = mysqli_prepare($conn, "
         SELECT c.claim_id, c.listing_id, c.student_id, c.portion_claimed, c.status,
                c.reservation_expires_at, ct.token_id, ct.used_at,
-               f.food_name, f.provider_id, u.user_name
+               f.food_name, f.provider_id, f.weight_kg, f.total_quantity, u.user_name
         FROM claim_tokens ct
         JOIN claim c ON ct.claim_id = c.claim_id
         JOIN food_listing f ON c.listing_id = f.listing_id
@@ -67,7 +67,7 @@ function resolveClaim(mysqli $conn, int $providerId, string $input): ?array {
     $stmt = mysqli_prepare($conn, "
         SELECT c.claim_id, c.listing_id, c.student_id, c.portion_claimed, c.status,
                c.reservation_expires_at, NULL AS token_id, NULL AS used_at,
-               f.food_name, f.provider_id, u.user_name
+               f.food_name, f.provider_id, f.weight_kg, f.total_quantity, u.user_name
         FROM claim c
         JOIN food_listing f ON c.listing_id = f.listing_id
         JOIN user u ON c.student_id = u.user_id
@@ -141,8 +141,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim_input'])) {
 
             if (!$exists) {
                 $portions = (int)$claim['portion_claimed'];
-                $co2 = round(0.875 * $portions, 3);
-                $water = round(17.5 * $portions, 2);
+                // CO2/water saved must be derived from THIS listing's actual
+                // weight, not a flat hardcoded rate — a claim on a heavy dish
+                // should count for more than a claim on a light one. Weight
+                // is stored per-listing (total portions), so we scale it down
+                // to a per-portion figure first, matching the same formula
+                // already used consistently elsewhere (e.g. the database
+                // seed data): weight_per_portion = weight_kg / total_quantity.
+                $totalQty = max(1, (int)$claim['total_quantity']); // guard against div-by-zero
+                $weightPerPortion = ((float)$claim['weight_kg']) / $totalQty;
+                $co2 = round($weightPerPortion * $portions * CO2_EMISSION_FACTOR, 3);
+                $water = round($weightPerPortion * $portions * WATER_SAVED_FACTOR, 2);
                 $ins = mysqli_prepare($conn, "INSERT INTO impact_record (claim_id, co2_saved_kg, water_saved_litre) VALUES (?, ?, ?)");
                 if ($ins === false) throw new Exception('prepare failed (impact insert): ' . mysqli_error($conn));
                 mysqli_stmt_bind_param($ins, "idd", $claim['claim_id'], $co2, $water);
@@ -230,7 +239,7 @@ mysqli_stmt_close($stmt);
                             <p class="hint">Enter the student's claim code or ID manually if scanning fails.</p>
                             <form method="POST" action="" class="manual-entry-row">
                                 <input type="hidden" name="entry_mode" value="manual">
-                                <input type="text" name="claim_input" placeholder="e.g. STD-8924 or claim token" required>
+                                <input type="text" name="claim_input" placeholder="e.g. 6A4B57" required>
                                 <button type="submit">Verify</button>
                             </form>
                         </div>

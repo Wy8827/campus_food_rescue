@@ -21,25 +21,20 @@ if (!in_array($period, ['week', 'month', 'year', 'all'], true)) {
     $period = 'month';
 }
 
-// Build the WHERE fragment (+ the equivalent fragment for the PREVIOUS
-// period, used for the "vs last period" comparison on the hero card).
+// Build the WHERE fragment for the selected period.
 switch ($period) {
     case 'week':
         $periodWhere = "c.confirmed_at >= CURDATE() - INTERVAL 7 DAY";
-        $prevWhere   = "c.confirmed_at >= CURDATE() - INTERVAL 14 DAY AND c.confirmed_at < CURDATE() - INTERVAL 7 DAY";
         break;
     case 'year':
         $periodWhere = "YEAR(c.confirmed_at) = YEAR(CURDATE())";
-        $prevWhere   = "YEAR(c.confirmed_at) = YEAR(CURDATE()) - 1";
         break;
     case 'all':
         $periodWhere = "1=1";
-        $prevWhere   = "1=0"; // no meaningful "previous period" for all-time
         break;
     case 'month':
     default:
         $periodWhere = "MONTH(c.confirmed_at) = MONTH(CURDATE()) AND YEAR(c.confirmed_at) = YEAR(CURDATE())";
-        $prevWhere   = "MONTH(c.confirmed_at) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(c.confirmed_at) = YEAR(CURDATE() - INTERVAL 1 MONTH)";
         break;
 }
 
@@ -83,14 +78,6 @@ function fetchPeriodTotals(mysqli $conn, int $providerId, string $whereFrag): ar
 }
 
 $current = fetchPeriodTotals($conn, $providerId, $periodWhere);
-$previous = $period !== 'all' ? fetchPeriodTotals($conn, $providerId, $prevWhere) : null;
-
-$weightChangePct = null;
-if ($previous && $previous['weight_kg'] > 0) {
-    $weightChangePct = round((($current['weight_kg'] - $previous['weight_kg']) / $previous['weight_kg']) * 100);
-} elseif ($previous && $current['weight_kg'] > 0) {
-    $weightChangePct = 100;
-}
 
 // =========================================================
 // Bar chart — food rescued per week, last 8 weeks
@@ -192,12 +179,12 @@ $milestones = [
     ['icon' => '🔥', 'title' => '50 meals rescued', 'achieved' => $allTime['meals'] >= 50,
         'sub' => $allTime['meals'] >= 50 ? 'Helped ' . $allTime['meals'] . ' students' : (50 - $allTime['meals']) . ' meals to go'],
     ['icon' => '⭐', 'title' => '100 kg saved', 'achieved' => $allTime['weight_kg'] >= 100,
-        'sub' => $allTime['weight_kg'] >= 100 ? 'Major CO2 impact' : round(100 - $allTime['weight_kg'], 1) . ' kg to go'],
+        'sub' => $allTime['weight_kg'] >= 100 ? 'Major CO<sub>2</sub> impact' : round(100 - $allTime['weight_kg'], 1) . ' kg to go'],
     ['icon' => '🏆', 'title' => '200 meals rescued', 'achieved' => $allTime['meals'] >= 200,
         'sub' => $allTime['meals'] >= 200 ? 'Helped ' . $allTime['meals'] . ' students' : (200 - $allTime['meals']) . ' meals to go'],
     ['icon' => '💎', 'title' => '30-day streak', 'achieved' => $longestStreak >= 30,
         'sub' => $longestStreak >= 30 ? 'Posted daily for 30+ days' : 'Post every day for 30 days (' . $longestStreak . ' so far)'],
-    ['icon' => '🌍', 'title' => '500 kg CO2 saved', 'achieved' => $allTime['co2'] >= 500,
+    ['icon' => '🌍', 'title' => '500 kg CO<sub>2</sub> saved', 'achieved' => $allTime['co2'] >= 500,
         'sub' => $allTime['co2'] >= 500 ? 'Huge environmental impact' : round(500 - $allTime['co2'], 1) . ' kg more to go'],
 ];
 
@@ -241,23 +228,23 @@ $periodLabels = ['week' => 'This week', 'month' => 'This month', 'year' => 'This
                         <div class="im-hero-icon im-white"><ion-icon name="cube-outline"></ion-icon></div>
                         <div class="im-hero-num"><?= $current['weight_kg'] ?> kg</div>
                         <div class="im-hero-label">Total food rescued</div>
-                        <?php if ($weightChangePct !== null): ?>
-                            <div class="im-hero-sub"><?= $weightChangePct >= 0 ? '↑' : '↓' ?> <?= $weightChangePct >= 0 ? '+' : '' ?><?= $weightChangePct ?>% vs last period</div>
-                        <?php else: ?>
-                            <div class="im-hero-sub">Lifetime total</div>
-                        <?php endif; ?>
+                        <div class="im-hero-divider"></div>
+                        <div class="im-hero-substat">
+                            <span class="im-hero-substat-num"><?= $current['meals'] ?></span>
+                            <span class="im-hero-substat-label">meals rescued across <?= $current['listings'] ?> listing<?= $current['listings'] === 1 ? '' : 's' ?></span>
+                        </div>
                     </div>
                     <div class="im-hero-card im-light">
                         <div class="im-hero-icon im-green-bg"><ion-icon name="leaf-outline"></ion-icon></div>
                         <div class="im-hero-num im-dark"><?= $current['co2'] ?> kg</div>
-                        <div class="im-hero-label im-dark">CO2 emissions avoided</div>
+                        <div class="im-hero-label im-dark">CO<sub>2</sub> emissions avoided</div>
                         <div class="im-hero-sub im-dark">From <?= $current['meals'] ?> meals rescued</div>
                     </div>
                     <div class="im-hero-card im-light">
-                        <div class="im-hero-icon im-green-bg"><ion-icon name="heart-outline"></ion-icon></div>
-                        <div class="im-hero-num im-dark"><?= $current['meals'] ?></div>
-                        <div class="im-hero-label im-dark">Meals rescued</div>
-                        <div class="im-hero-sub im-dark">Across <?= $current['listings'] ?> listings</div>
+                        <div class="im-hero-icon im-green-bg"><ion-icon name="water-outline"></ion-icon></div>
+                        <div class="im-hero-num im-dark"><?= $current['water'] ?> L</div>
+                        <div class="im-hero-label im-dark">Water saved</div>
+                        <div class="im-hero-sub im-dark">From <?= $current['meals'] ?> meals rescued</div>
                     </div>
                 </div>
 
@@ -324,8 +311,8 @@ $periodLabels = ['week' => 'This week', 'month' => 'This month', 'year' => 'This
                             <div class="im-milestone <?= $ms['achieved'] ? 'im-achieved' : '' ?>">
                                 <div class="im-ms-icon <?= $ms['achieved'] ? 'im-done' : 'im-todo' ?>"><span><?= $ms['icon'] ?></span></div>
                                 <div>
-                                    <div class="im-ms-title"><?= htmlspecialchars($ms['title']) ?></div>
-                                    <div class="im-ms-sub"><?= htmlspecialchars($ms['sub']) ?></div>
+                                    <div class="im-ms-title"><?= $ms['title'] ?></div>
+                                    <div class="im-ms-sub"><?= $ms['sub'] ?></div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

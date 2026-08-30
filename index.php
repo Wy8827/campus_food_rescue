@@ -9,7 +9,13 @@ require_once __DIR__ . '/config/constants.php';
 
 if (isLoggedIn()) {
     $role = getRole();
-    header("Location: " . BASE_URL . "/pages/$role/dashboard.php");
+    // Role name and folder name diverge for providers — this is the same
+    // mapping already used correctly in login.php and includes/sidebar.php.
+    // Passing $role straight into the path (e.g. "provider") 404s, since
+    // the real folder is pages/food_provider/, not pages/provider/.
+    $roleFolders = ['admin' => 'admin', 'provider' => 'food_provider', 'student' => 'student'];
+    $folder = $roleFolders[$role] ?? 'student';
+    header("Location: " . BASE_URL . "/pages/$folder/dashboard.php");
     exit();
 }
 

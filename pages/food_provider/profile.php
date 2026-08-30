@@ -195,7 +195,7 @@ if (!$provider) {
                         </div>
 
                         <div class="side-column">
-                            <div class="quick-links-container">
+                            <div class="quick-links-container profile-hours-card">
                                 <span class="quick-link-header" style="text-align:left; margin-top:0;">Hours &amp; Contact</span>
                                 <div class="profile-info-container" style="flex-direction: column; gap: 16px;">
                                     <div class="profile-info-item">
