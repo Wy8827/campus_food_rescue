@@ -20,6 +20,11 @@ define('UPLOAD_PATH', __DIR__ . '/../uploads/food/');
 define('UPLOAD_URL',  BASE_URL . '/uploads/food/');
 define('CLAIM_HOLD_MINUTES', 10);
 define('CO2_EMISSION_FACTOR', 2.5);
+// Litres of water saved per kg of food rescued — same per-kg convention as
+// CO2_EMISSION_FACTOR above. Matches the multiplier already used in the
+// database seed data's impact_record calculations, kept here as a single
+// named constant so it's no longer duplicated/hardcoded at each call site.
+define('WATER_SAVED_FACTOR', 50.0);
 define('MAX_IMAGE_SIZE',     5 * 1024 * 1024); // 5MB
 define('ALLOWED_IMG_TYPES',  ['image/jpeg', 'image/png', 'image/webp']);
 ?>

@@ -45,17 +45,22 @@
     }
 }
 
-/* ===================== Mobile top-offset fix ===================== */
-/* dashboard.css hardcodes .content-container { margin-top: 64px } to clear
-   the fixed topbar — correct on desktop, but on mobile the topbar wraps to
-   two rows (~112px) and dashboard.css has no mobile override for this, so
-   the page title ends up partly hidden behind the topbar. Fixed here
-   (rather than in the shared dashboard.css) since provider.css loads after
-   it and can safely override just for these pages without touching a file
-   shared with admin's pages. */
+/* ===================== Profile: Hours & Contact card visible on mobile ===================== */
+/* This card reuses the shared .quick-links-container class purely for its
+   box styling (border/padding/background) — but dashboard.css's mobile
+   rule blanket-hides EVERY .quick-links-container at <=768px, since that
+   class is also (correctly) used for dashboard.php's real Quick Links
+   widgets (QR Scanner promo, Monthly Impact, Recent Activity), which
+   genuinely should collapse on small screens. This card isn't one of
+   those — it holds two real, editable form fields (Operating Hours,
+   Contact Phone Number), so hiding it doesn't declutter, it makes those
+   fields impossible to view or edit on mobile. A distinct class on just
+   this instance (added in profile.php) lets it opt back in without
+   touching the shared dashboard.css or affecting the dashboard's own
+   widgets, which still correctly hide as intended. */
 @media (max-width: 768px) {
-    .content-container {
-        margin-top: 120px !important;
+    .profile-hours-card {
+        display: block !important;
     }
 }
 
@@ -324,17 +329,16 @@
     .checkbox-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ===================== Topbar/sidebar height alignment ===================== */
-/* The shared shell has a pre-existing mismatch: .sidebar-header is 90px
-   tall (sidebar.css) but .topbar is only 64px tall (topbar.css), so the
-   line under the sidebar logo doesn't line up with the topbar's bottom
-   edge. This is a shared-file bug (also visible on admin's pages), but
-   fixed here scoped to provider pages only rather than editing the
-   shared topbar.css/dashboard.css directly. content-container's margin
-   must grow to match, or content hides under the taller topbar (desktop
-   only — the existing mobile override below still wins at <=768px). */
+/* ===================== Topbar clearance fix (desktop) ===================== */
+/* dashboard.css's base .content-container margin-top is 80px, but the
+   actual topbar (topbar.css) is 90px tall — a 10px shortfall that leaves
+   content peeking slightly under the topbar. (Note: an earlier version of
+   this comment also claimed .topbar itself defaulted to 64px on desktop
+   and needed forcing to 90px here — that's no longer true, topbar.css
+   already sets 90px on its own, so that part of the old override was
+   redundant and has been removed. This one line is the only part still
+   doing real work.) */
 @media (min-width: 769px) {
-    .topbar { height: 90px !important; }
     .content-container { margin-top: 90px !important; }
 }
 

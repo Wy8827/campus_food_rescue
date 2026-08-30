@@ -71,6 +71,11 @@
 .im-hero-label.im-dark { color: #A1A1AA; opacity: 1; }
 .im-hero-sub.im-dark { color: #A1A1AA; opacity: 1; }
 
+.im-hero-divider { height: 1px; background-color: rgba(255,255,255,0.2); margin: 16px 0 12px; }
+.im-hero-substat { display: flex; align-items: baseline; gap: 8px; }
+.im-hero-substat-num { font-size: 20px; font-weight: 700; }
+.im-hero-substat-label { font-size: 12px; opacity: 0.8; }
+
 /* ===================== Charts row ===================== */
 .im-charts-row {
     display: grid;
