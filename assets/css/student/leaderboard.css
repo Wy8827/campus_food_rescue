@@ -65,3 +65,44 @@
     .student-cell b { font-size: 6px; }
     .badge-chip { display: inline-block; max-width: 100%; white-space: normal; }
 }
+
+/* Topbar overflow fix -- keeps the username from wrapping below
+   "Campus Food Rescue" on narrow screens. Placed here (not in
+   topbar.css/sidebar.css) since this file loads after topbar.css,
+   so these rules win the cascade without editing the shared files. */
+@media (max-width: 760px) {
+    .topbar-left,
+    .topbar-right,
+    .profile-pic {
+        min-width: 0 !important;
+    }
+
+    .topbar-right {
+        flex-shrink: 1 !important;
+    }
+
+    .avatar,
+    .logout-btn {
+        flex-shrink: 0 !important;
+    }
+
+    .topbar-title {
+        max-width: 40vw !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    .topbar .user-name {
+        max-width: 110px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .topbar .user-name {
+        display: none !important;
+    }
+}
