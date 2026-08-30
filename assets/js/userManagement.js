@@ -12,15 +12,7 @@ function openDetailModal(btn) {
 
     // Display provider outlet details if role is provider
     const providerContainer = document.getElementById('providerDetailsContainer');
-    if (data.role.toLowerCase() === 'provider') {
-        providerContainer.style.display = 'block';
-        document.getElementById('detailProviderName').innerText = data.providerName || 'N/A';
-        document.getElementById('detailContact').innerText = data.contact || 'N/A';
-        document.getElementById('detailLocation').innerText = data.location || 'N/A';
-        document.getElementById('detailHours').innerText = data.hours || 'N/A';
-    } else {
-        providerContainer.style.display = 'none';
-    }
+    
 
     // Avatar configuration
     const avatar = document.getElementById('detailAvatar');

@@ -26,35 +26,6 @@
     outline: none;
 }
 
-.view-toggle-buttons {
-    display: flex;
-    background: #F2F4F7;
-    border-radius: 8px;
-    padding: 3px;
-    margin: 15px 0 15px 0;
-}
-
-.toggle-btn {
-    border: none;
-    background: transparent;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: #667085;
-}
-
-.toggle-btn.active {
-    background: #FFFFFF;
-    color: #1D2939;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.toggle-btn ion-icon {
-    font-size: 18px;
-}
-
 .moderation-list {
     list-style: none;
     padding: 0;
@@ -262,10 +233,6 @@
         flex: 1 1 calc(50% - 8px);
     }
 
-    .view-toggle-buttons {
-        display: none;
-    }
-
     .moderation-list {
         grid-template-columns: 1fr;
     }
@@ -326,14 +293,13 @@
     height: 100vh;
     background: rgba(16, 24, 40, 0.6);
     backdrop-filter: blur(2px);
-    display: none; /* 默认隐藏 */
+    display: none; 
     align-items: center;
     justify-content: center;
     z-index: 9999;
     box-sizing: border-box;
 }
 
-/* 当 JS 触发添加 show 类名时显示 */
 .custom-modal-backdrop.show {
     display: flex !important;
 }

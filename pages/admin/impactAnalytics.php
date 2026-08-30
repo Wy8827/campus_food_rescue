@@ -206,10 +206,10 @@ foreach ($trendData as $data) {
                                         <td><?= number_format($vendor['rescue_volume'] ?? 0, 2) ?> kg</td>                                 
                                         <td><?= number_format($vendor['co2_mitigation'] ?? 0, 2) ?> kg</td>                                 
                                         <td>
-                                            <span class="status-badge status-badge-<?= $vStatus ?>">
-                                                <span class="status-dot"></span>
-                                                <?= ucfirst(htmlspecialchars($vendor['provider_status'])) ?>
-                                            </span>
+                                            <div class="status-indicator status-<?= $vStatus ?>">
+                                                <span class="dot"></span>
+                                                <span><?= ucfirst(htmlspecialchars($vendor['provider_status'])) ?></span>
+                                            </div>
                                         </td>                             
                                     </tr>                             
                                 <?php endforeach; ?>                         

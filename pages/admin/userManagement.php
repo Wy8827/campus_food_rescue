@@ -172,7 +172,8 @@ $securityQuestionsList = [
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../assets/css/sidebar.css">     
     <link rel="stylesheet" href="../../assets/css/topbar.css">     
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">     
+    <link rel="stylesheet" href="../../assets/css/dashboard.css"> 
+    <link rel="stylesheet" href="../../assets/css/moderation.css">    
     <link rel="stylesheet" href="../../assets/css/userManagement.css">     
     <script type="module" src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.esm.js"></script>     
     <script nomodule src="https://unpkg.com/ionicons@8.0.13/dist/ionicons/ionicons.js"></script>     

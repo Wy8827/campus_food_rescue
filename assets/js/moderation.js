@@ -39,24 +39,6 @@ document.addEventListener('DOMContentLoaded', function () {
         categorySelect.addEventListener('change', applyFilters);
         urgencySelect.addEventListener('change', applyFilters);
     }
-
-    const listViewBtn = document.getElementById('listViewBtn');
-    const gridViewBtn = document.getElementById('gridViewBtn');
-    const moderationList = document.getElementById('moderationList');
-
-    if (listViewBtn && gridViewBtn && moderationList) {
-        listViewBtn.addEventListener('click', function () {
-            listViewBtn.classList.add('active');
-            gridViewBtn.classList.remove('active');
-            moderationList.classList.add('list-view');
-        });
-
-        gridViewBtn.addEventListener('click', function () {
-            gridViewBtn.classList.add('active');
-            listViewBtn.classList.remove('active');
-            moderationList.classList.remove('list-view');
-        });
-    }
 });
 
 // ==========================================

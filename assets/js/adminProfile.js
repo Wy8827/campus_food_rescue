@@ -32,22 +32,6 @@ if (editBtn) {
 }
 
 // -----------------------------------------
-// Alert Switches Toggle Logic
-// -----------------------------------------
-const switches = document.querySelectorAll('.switch');
-switches.forEach(img => {
-    img.addEventListener('click', () => {
-        if (img.src.includes('off.png')) {
-            img.src = '../../assets/images/on.png';
-            img.alt = 'on Icon';
-        } else {
-            img.src = '../../assets/images/off.png';
-            img.alt = 'off Icon';
-        }
-    });
-});
-
-// -----------------------------------------
 // Password Verification Method Toggle Logic
 // -----------------------------------------
 const toggleSecurityBtn = document.getElementById('toggle-security-btn');

@@ -208,10 +208,6 @@ if ($currentView === 'food') {
                             <option value="low">Low (&gt; 2 Days)</option>
                         </select>
                     </div>
-                    <div class="view-toggle-buttons">
-                        <button type="button" class="toggle-btn" id="listViewBtn"><ion-icon name="list-outline"></ion-icon></button>
-                        <button type="button" class="toggle-btn active" id="gridViewBtn"><ion-icon name="grid-outline"></ion-icon></button>
-                    </div>
                 </div>
 
                 <ul class="moderation-list" id="moderationList">
